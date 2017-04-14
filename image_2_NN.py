@@ -5,8 +5,6 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-import pprint
-
 def unpickle(file):
   fo = open(file, 'rb')#open the file in binary mode
   dict = cPickle.load(fo)
@@ -23,8 +21,7 @@ def load_CIFAR10(folder):
         fname = os.path.join(folder, "%s%d" % ("data_batch_", i))
         data_dict = unpickle(fname)
         if i == 1:
-            tr_data = data_dict['data'].reshape(10000, 32, 32, 3)
-            print tr_data.shape
+            tr_data = data_dict['data']
             tr_labels = data_dict['labels']
         else:
             tr_data = np.vstack((tr_data, data_dict['data']))
@@ -67,63 +64,63 @@ if __name__ == '__main__':
   y_test = np.reshape(te_labels10, (1,te_data10.shape[0]))
 
 #===== Softmax linear classifier =====
-
-  
-  #Train a Linear Classifier
-  W = 0.01 * np.random.randn(K,D)/np.sqrt(num_examples)
-  b = np.zeros((K,1))
-
-  # some hyperparameters
-  step_size = 2e-7
-  reg = 1e-3 # regularization strength
-
-  # gradient descent loop
-  for i in xrange(50):
-  
-    # evaluate class scores, [K x (N*K)]
-    scores = np.dot(W,X) + b
-    max_scores = np.amax(scores, axis=0)
-    scores = np.subtract(scores, max_scores)
-
-    # compute the class probabilities
-    exp_scores = np.exp(scores)
-    #print "exp scores"
-    #print exp_scores
-    probs = exp_scores / np.sum(exp_scores, axis=0, keepdims=True)
-    #print "prob scores"
-    #print probs
-
-    # compute the loss: average cross-entropy loss and regularization
-    corect_logprobs = -np.log(probs.T[range(num_examples),y])
-    data_loss = np.sum(corect_logprobs)/num_examples
-    reg_loss = 0.5*reg*np.sum(W*W)
-    loss = data_loss + reg_loss
-    if i % 10 == 0:
-      predicted_class = np.argmax(scores, axis=0)
-      print "iteration %d: loss %f training accuracy: %.2f" % (i, loss, np.mean(predicted_class == y))
-
-
-    # compute the gradient on scores
-    dscores = probs.T #[(N*K) X K]
-    dscores[range(num_examples),y] -= 1
-    dscores /= num_examples
-    
-    
-    # backpropate the gradient to the parameters (W,b)
-    dW = np.dot(dscores.T, X.T)
-    db = np.sum(dscores, axis=0, keepdims=True)
-
-    dW += reg*W # regularization gradient
-    # perform a parameter update
-    W += -step_size * dW
-    b += -step_size * db.T
-  
-
-  # evaluate training set accuracy
-  scores = np.dot(W, X) + b
-  predicted_class = np.argmax(scores, axis=0)
-  print 'training accuracy: %.2f' % (np.mean(predicted_class == y))
-
+#
+#  
+#  #Train a Linear Classifier
+#  W = 0.01 * np.random.randn(K,D)/np.sqrt(num_examples)
+#  b = np.zeros((K,1))
+#
+#  # some hyperparameters
+#  step_size = 2e-7
+#  reg = 1e-3 # regularization strength
+#
+#  # gradient descent loop
+#  for i in xrange(50):
+#  
+#    # evaluate class scores, [K x (N*K)]
+#    scores = np.dot(W,X) + b
+#    max_scores = np.amax(scores, axis=0)
+#    scores = np.subtract(scores, max_scores)
+#
+#    # compute the class probabilities
+#    exp_scores = np.exp(scores)
+#    #print "exp scores"
+#    #print exp_scores
+#    probs = exp_scores / np.sum(exp_scores, axis=0, keepdims=True)
+#    #print "prob scores"
+#    #print probs
+#
+#    # compute the loss: average cross-entropy loss and regularization
+#    corect_logprobs = -np.log(probs.T[range(num_examples),y])
+#    data_loss = np.sum(corect_logprobs)/num_examples
+#    reg_loss = 0.5*reg*np.sum(W*W)
+#    loss = data_loss + reg_loss
+#    if i % 10 == 0:
+#      predicted_class = np.argmax(scores, axis=0)
+#      print "iteration %d: loss %f training accuracy: %.2f" % (i, loss, np.mean(predicted_class == y))
+#
+#
+#    # compute the gradient on scores
+#    dscores = probs.T #[(N*K) X K]
+#    dscores[range(num_examples),y] -= 1
+#    dscores /= num_examples
+#    
+#    
+#    # backpropate the gradient to the parameters (W,b)
+#    dW = np.dot(dscores.T, X.T)
+#    db = np.sum(dscores, axis=0, keepdims=True)
+#
+#    dW += reg*W # regularization gradient
+#    # perform a parameter update
+#    W += -step_size * dW
+#    b += -step_size * db.T
+#  
+#
+#  # evaluate training set accuracy
+#  scores = np.dot(W, X) + b
+#  predicted_class = np.argmax(scores, axis=0)
+#  print 'training accuracy: %.2f' % (np.mean(predicted_class == y))
+#
 #===== two-layer NN =====
 
   # initialize parameters randomly
@@ -152,7 +149,7 @@ if __name__ == '__main__':
     # compute the loss: average cross-entropy loss and regularization
     corect_logprobs = -np.log(probs.T[range(num_examples),y])
     data_loss = np.sum(corect_logprobs)/num_examples
-    reg_loss = 0.5*reg*np.sum(W2*W2)
+    reg_loss = 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)
     loss = data_loss + reg_loss
     if i % 10 == 0:
       predicted_class = np.argmax(scores, axis=0)
