@@ -104,7 +104,7 @@ def pooling(pooling_data, num_images, img_size):
 
   for k in range(0, num_images):
     pooling_result = np.empty((row, col))
-    tmp_pooling_index = np.empty((row, col))
+    tmp_pooling_index = np.empty((row, col), dtype=int)
 
     #print k, 'th image'
     for i in range (0,row):
@@ -293,7 +293,9 @@ def updateBias(dReLU):
 
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
-  datapath = '/home/hhwu/tensorflow_work/cifar-10-batches-py/'
+  #datapath = '/home/hhwu/tensorflow_work/cifar-10-batches-py/'
+  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
+
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
 
@@ -328,7 +330,7 @@ if __name__ == '__main__':
   W2 = 0.01*np.random.randn(K,num_filters*ReLU_1_size*ReLU_1_size/4)*(np.sqrt(2./(num_filters*ReLU_1_size*ReLU_1_size/4)))
   b2 = np.zeros((K,1))
 
-  for itr in xrange(1000):
+  for itr in xrange(10):
     X, y = batchRead(tr_data10, tr_labels10)
     #X, y = batchRead(tr_data10, tr_labels10, W, F, S, P)
 
@@ -431,17 +433,22 @@ if __name__ == '__main__':
     b2 += -step_size * db2.T
 
 
-  # evaluate test set accuracy
-  X, y = batchTestRead(te_data10, te_labels10)
+
+  ###########################################
+  #            Evaluation                   #
+  ###########################################
+  for itr in xrange(5):
+    # evaluate test set accuracy
+    X, y_test = batchRead(te_data10, te_labels10)
 
     #Convolutional layer
-  col_images = batchIm2Col(X)
-  ReLU_1 = np.maximum(0, np.dot(W1,col_images) + b1)
-  pool_1, pool_1_index = pooling(ReLU_1, mini_batch, ReLU_1_size)
-  scores = np.dot(W2, pool_1) + b2
-  exp_scores = np.exp(scores)
-  probs = exp_scores / np.sum(exp_scores, axis=0, keepdims=True)
+    col_images = batchIm2Col(X)
+    ReLU_1 = np.maximum(0, np.dot(W1,col_images) + b1)
+    pool_1, pool_1_index = pooling(ReLU_1, mini_batch, ReLU_1_size)
+    scores = np.dot(W2, pool_1) + b2
+    exp_scores = np.exp(scores)
+    probs = exp_scores / np.sum(exp_scores, axis=0, keepdims=True)
 
-  predicted_class = np.argmax(scores, axis=0)
-  print 'test accuracy: %.2f' % (np.mean(predicted_class == y_test))
+    predicted_class = np.argmax(scores, axis=0)
+    print 'test accuracy: %.2f' % (np.mean(predicted_class == y_test))
  
