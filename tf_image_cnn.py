@@ -39,8 +39,9 @@ def load_CIFAR10(folder):
 
 
 
-def batchRead(input_data, input_label):
-  batch_idx = np.random.randint(0,len(input_data),mini_batch)
+def batchRead(input_data, input_label,start):
+  #batch_idx = np.random.randint(0,len(input_data),mini_batch)
+  batch_idx = xrange(start, start+mini_batch)
 
   #print len(input_data)
   #print len(batch_idx)
@@ -126,16 +127,17 @@ if __name__ == '__main__':
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
-  mini_batch = 256
+  mini_batch = 250
   K = 10 # number of classes
   NUM_FILTER_1 = 16
-  NUM_FILTER_2 = 16
-  NUM_FILTER_3 = 32
+  NUM_FILTER_2 = 20
+  NUM_FILTER_3 = 20
 
   NUM_NEURON_1 = 100
 
   reg = 5e-4 # regularization strength
-  step_size = 1e-3
+  #step_size = 1
+  step_size = 1e-2
 
 
   # initialize parameters randomly
@@ -145,10 +147,10 @@ if __name__ == '__main__':
   W1 = tf.Variable(tf.truncated_normal([5,5,3,NUM_FILTER_1], stddev=0.1))
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
 
-  W2 = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
+  W2 = tf.Variable(tf.truncated_normal([4,4,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
-  W3 = tf.Variable(tf.truncated_normal([4,4,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
+  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
   b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
 
 
@@ -159,9 +161,14 @@ if __name__ == '__main__':
   b5 = tf.Variable(tf.ones([K])/10)
 
 
-  Y1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,2,2,1], padding='SAME')+b1)
-  Y2 = tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,2,2,1], padding='SAME')+b2)
-  Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,2,2,1], padding='SAME')+b3)
+  Y1 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME') 
+  Y3 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+
+
+  #Y1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1)
+  #Y2 = tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2)
+  #Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3)
 
   YY = tf.reshape(Y3, shape=[-1,4*4*NUM_FILTER_3])
 
@@ -182,20 +189,11 @@ if __name__ == '__main__':
   sess = tf.Session()
   sess.run(tf.global_variables_initializer())
 
-  #epoch = 0
+  idx_start = 0
+  epoch = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(20000):
-    #if epoch > 10*num_input_data:
-    #  epoch = 0
-    #  step_size = step_size/2
-    #else:
-    #  epoch += mini_batch
-
-    if itr == 10000:
-      step_size = step_size/2
-   
-
-    x, y = batchRead(tr_data10, tr_labels10)
+  for itr in xrange(100000):
+    x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, learning_rate: step_size})
  
     if itr % 10 == 0:
@@ -203,7 +201,16 @@ if __name__ == '__main__':
                                                               step_size,
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y}),
                                                               accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
+    #print "batch: ", idx_start
+    if idx_start+mini_batch >= len(tr_data10):
+      idx_start = 0
+      epoch += 1
+    else:
+      idx_start += mini_batch
 
+    if epoch == 20:
+      step_size = step_size/2
+      epoch = 0
 
 
   x, y = batchTestRead(te_data10, te_labels10)
