@@ -128,11 +128,11 @@ if __name__ == '__main__':
   #########################################
   mini_batch = 256
   K = 10 # number of classes
-  NUM_FILTER_1 = 32
-  NUM_FILTER_2 = 32
-  NUM_FILTER_3 = 64
+  NUM_FILTER_1 = 16
+  NUM_FILTER_2 = 16
+  NUM_FILTER_3 = 32
 
-  NUM_NEURON_1 = 500
+  NUM_NEURON_1 = 100
 
   reg = 5e-4 # regularization strength
   step_size = 1e-3
