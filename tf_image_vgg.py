@@ -111,7 +111,7 @@ def batchTestRead(input_data, input_label):
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
   #datapath = '/home/hhwu/tensorflow_work/cifar-10-batches-py/'
-  datapath = '/home/hhwu/cifar-10-batches-py/'
+  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -127,27 +127,24 @@ if __name__ == '__main__':
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
-  mini_batch = 250
+  mini_batch = 500
   K = 10 # number of classes
   NUM_FILTER_1 = 48
   NUM_FILTER_2 = 48
-  NUM_FILTER_3 = 48
 
+  NUM_FILTER_3 = 96
   NUM_FILTER_4 = 96
-  NUM_FILTER_5 = 96
-  NUM_FILTER_6 = 96
 
-  NUM_FILTER_7 = 192
-  NUM_FILTER_8 = 192
-  NUM_FILTER_9 = 192
+  NUM_FILTER_5 = 192
+  NUM_FILTER_6 = 192
 
 
-
-  NUM_NEURON_1 = 100
+  NUM_NEURON_1 = 512
+  NUM_NEURON_2 = 256
 
   reg = 5e-4 # regularization strength
   #step_size = 1
-  step_size = 1e-2
+  step_size = 1e-3
 
 
   # initialize parameters randomly
@@ -172,36 +169,35 @@ if __name__ == '__main__':
   W6 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_5,NUM_FILTER_6], stddev=0.1))
   b6 = tf.Variable(tf.ones([NUM_FILTER_6])/10)
 
-  W7 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_6,NUM_FILTER_7], stddev=0.1))
-  b7 = tf.Variable(tf.ones([NUM_FILTER_7])/10)
 
-  W8 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_7,NUM_FILTER_8], stddev=0.1))
-  b8 = tf.Variable(tf.ones([NUM_FILTER_8])/10)
+  W7 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_6,NUM_NEURON_1], stddev=0.1))
+  b7 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
 
-  W9 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_8,NUM_FILTER_9], stddev=0.1))
-  b9 = tf.Variable(tf.ones([NUM_FILTER_9])/10)
+  W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.1))
+  b8 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
 
+  W9 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
+  b9 = tf.Variable(tf.ones([K])/10)
 
-  W4 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_9,NUM_NEURON_1], stddev=0.1))
-  b4 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
+  Y1  = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1)
+  Y2  = tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2)
+  YP1 = tf.nn.max_pool(Y2, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
-  W5 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,K], stddev=0.1))
-  b5 = tf.Variable(tf.ones([K])/10)
+  
+  Y3  = tf.nn.relu(tf.nn.conv2d(YP1, W3, strides=[1,1,1,1], padding='SAME')+b3)
+  Y4  = tf.nn.relu(tf.nn.conv2d(Y3,  W4, strides=[1,1,1,1], padding='SAME')+b4)
+  YP2 = tf.nn.max_pool(Y4, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
+  Y5  = tf.nn.relu(tf.nn.conv2d(YP2, W5, strides=[1,1,1,1], padding='SAME')+b5)
+  Y6  = tf.nn.relu(tf.nn.conv2d(Y5,  W6, strides=[1,1,1,1], padding='SAME')+b6)
+  YP3 = tf.nn.max_pool(Y6, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
-  Y1 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME') 
-  Y3 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+ 
+  YY = tf.reshape(YP3, shape=[-1,4*4*NUM_FILTER_6])
 
-
-  #Y1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1)
-  #Y2 = tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2)
-  #Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3)
-
-  YY = tf.reshape(Y3, shape=[-1,4*4*NUM_FILTER_3])
-
-  Y4 = tf.nn.relu(tf.matmul(YY,W4)+b4)
-  Y  = tf.nn.softmax(tf.matmul(Y4,W5)+b5)
+  Y7 = tf.nn.relu(tf.matmul(YY,W7)+b7)
+  Y8 = tf.nn.relu(tf.matmul(Y7,W8)+b8)
+  Y  = tf.nn.softmax(tf.matmul(Y8,W9)+b9)
 
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
