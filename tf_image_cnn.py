@@ -111,7 +111,7 @@ def batchTestRead(input_data, input_label):
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
   #datapath = '/home/hhwu/tensorflow_work/cifar-10-batches-py/'
-  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
+  datapath = '/home/hhwu/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -127,7 +127,7 @@ if __name__ == '__main__':
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
-  mini_batch = 500
+  mini_batch = 100
   K = 10 # number of classes
   NUM_FILTER_1 = 32
   NUM_FILTER_2 = 32
@@ -176,6 +176,10 @@ if __name__ == '__main__':
   Y4 = tf.nn.relu(tf.matmul(YY,W4)+b4)
   Y  = tf.nn.softmax(tf.matmul(Y4,W5)+b5)
 
+  global_step = tf.Variable(0, trainable=False)
+  starter_learning_rate = 0.001
+  learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+                                           100000, 0.96, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -184,44 +188,43 @@ if __name__ == '__main__':
   correct_prediction = tf.equal(tf.argmax(Y,1), tf.argmax(Y_,1))
   accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-  learning_rate = tf.placeholder(tf.float32, shape=[])
-  train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
+
+  # Passing global_step to minimize() will increment it at each step.
+  train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
+  
+
+  #learning_rate = tf.placeholder(tf.float32, shape=[])
+  #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
   sess = tf.Session()
   sess.run(tf.global_variables_initializer())
 
   idx_start = 0
-  epoch = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(100000):
+  for itr in xrange(10000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
-    sess.run(train_step, feed_dict={X: x, Y_: y, learning_rate: step_size})
+    sess.run(train_step, feed_dict={X: x, Y_: y})
  
-    if itr % 10 == 0:
+    if itr % 100 == 0:
       print "iteration %d:  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr,
-                                                              step_size,
+                                                              #step_size,
+                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y}),
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y}),
                                                               accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
       idx_start = 0
-      epoch += 1
     else:
       idx_start += mini_batch
 
-    if epoch == 120:
-      step_size = step_size/10
-      epoch = 0
 
 
-  #x, y = batchTestRead(te_data10, te_labels10)
-  ##print(accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
-  #print "==================== Test Accuracy ===================="
-  #print "epoch %d:  learning rate: %f  test accuracy: %f" % (epoch,
-  #                                                            step_size,
-  #                                                            accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
-  #print "=                                                     ="
-  #print "======================================================="
+  x, y = batchTestRead(te_data10, te_labels10)
+  #print(accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
+  print "==================== Test Accuracy ===================="
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y})
+  print "=                                                     ="
+  print "======================================================="
 
 
