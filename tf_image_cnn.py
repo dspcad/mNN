@@ -179,7 +179,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = 0.001
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                           100000, 0.96, staircase=True)
+                                           100000, 0.99, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -191,7 +191,10 @@ if __name__ == '__main__':
 
   # Passing global_step to minimize() will increment it at each step.
   train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
-  
+ 
+
+  # Add ops to save and restore all the variables.
+  saver = tf.train.Saver() 
 
   #learning_rate = tf.placeholder(tf.float32, shape=[])
   #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
@@ -199,9 +202,14 @@ if __name__ == '__main__':
   sess = tf.Session()
   sess.run(tf.global_variables_initializer())
 
+  # Restore variables from disk.
+  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
+  #print("Model restored.")
+
+
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(10000000):
+  for itr in xrange(1000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y})
  
@@ -211,6 +219,12 @@ if __name__ == '__main__':
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y}),
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y}),
                                                               accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
+
+    if itr % 10000 == 0 and itr != 0:
+      model_name = "./checkpoint/model_%d.ckpt" % itr
+      save_path = saver.save(sess, model_name)
+      #save_path = saver.save(sess, "./checkpoint/model.ckpt")
+      print("Model saved in file: %s" % save_path)
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
