@@ -40,8 +40,8 @@ def load_CIFAR10(folder):
 
 
 def batchRead(input_data, input_label,start):
-  #batch_idx = np.random.randint(0,len(input_data),mini_batch)
-  batch_idx = xrange(start, start+mini_batch)
+  batch_idx = np.random.randint(0,len(input_data),mini_batch)
+  #batch_idx = xrange(start, start+mini_batch)
 
   #print len(input_data)
   #print len(batch_idx)
@@ -110,8 +110,7 @@ def batchTestRead(input_data, input_label):
 
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
-  #datapath = '/home/hhwu/tensorflow_work/cifar-10-batches-py/'
-  datapath = '/home/hhwu/cifar-10-batches-py/'
+  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -129,9 +128,9 @@ if __name__ == '__main__':
   #########################################
   mini_batch = 100
   K = 10 # number of classes
-  NUM_FILTER_1 = 32
-  NUM_FILTER_2 = 32
-  NUM_FILTER_3 = 64
+  NUM_FILTER_1 = 16
+  NUM_FILTER_2 = 16
+  NUM_FILTER_3 = 32
 
   NUM_NEURON_1 = 64
 
