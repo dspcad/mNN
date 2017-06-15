@@ -13,7 +13,7 @@ def unpickle(file):
   return dict
 
 def load_CIFAR10(folder):
-  tr_data = np.empty((0,32*32*3))
+  tr_data = np.empty((0,32*32*3), dtype=np.float32)
   tr_labels = np.empty(1)
   '''
   32x32x3
@@ -40,13 +40,13 @@ def load_CIFAR10(folder):
 
 
 def batchRead(input_data, input_label,start):
-  #batch_idx = np.random.randint(0,len(input_data),mini_batch)
-  batch_idx = xrange(start, start+mini_batch)
+  batch_idx = np.random.randint(0,len(input_data),mini_batch)
+  #batch_idx = xrange(start, start+mini_batch)
 
   #print len(input_data)
   #print len(batch_idx)
 
-  img_batch = np.empty((32,32,3))
+  img_batch = np.empty((32,32,3), dtype=np.float32)
   label_batch = np.empty(1)
   for i in range(0, mini_batch):
     #Convolutional layer
@@ -66,7 +66,7 @@ def batchRead(input_data, input_label,start):
   img_batch = img_batch.reshape(mini_batch,32,32,3)
 
   #convert to one hot labels
-  train_y = np.zeros((mini_batch,K))
+  train_y = np.zeros((mini_batch,K), dtype=np.float32)
   for i in range(mini_batch):
     train_y[i][label_batch[i]] = 1
 
@@ -76,7 +76,7 @@ def batchRead(input_data, input_label,start):
 
 
 def batchTestRead(input_data, input_label):
-  img_batch = np.empty((32,32,3))
+  img_batch = np.empty((32,32,3), dtype=np.float32)
   label_batch = np.empty(1)
   for i in range(0, len(input_data)):
     #Convolutional layer
@@ -98,7 +98,7 @@ def batchTestRead(input_data, input_label):
   #print 'after', img_batch.shape
 
   #convert to one hot labels
-  test_y = np.zeros((len(input_data),K))
+  test_y = np.zeros((len(input_data),K), dtype=np.float32)
   for i in range(len(input_data)):
     test_y[i][label_batch[i]] = 1
 
@@ -106,6 +106,17 @@ def batchTestRead(input_data, input_label):
   return img_batch, test_y
 
 
+def centeredData(input_data):
+  center_img = np.zeros((1,32*32*3), dtype=np.float32)
+  for i in range(len(input_data)):
+    center_img += input_data[i]
+
+  center_img = center_img/len(input_data)
+  #for i in range(len(input_data)):
+  #  input_data[i] = np.subtract(input_data[i], center_img, casting='unsafe')
+  input_data = np.subtract(input_data, center_img, casting='unsafe')
+
+  return input_data, center_img
 
 
 if __name__ == '__main__':
@@ -121,6 +132,9 @@ if __name__ == '__main__':
   print tr_labels10.shape
   print te_data10.shape
   print te_labels10.dtype
+
+  tr_data10, center_img = centeredData(tr_data10)
+  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
  
   y = tr_labels10
 
@@ -131,13 +145,14 @@ if __name__ == '__main__':
   K = 10 # number of classes
   NUM_FILTER_1 = 32
   NUM_FILTER_2 = 32
-  NUM_FILTER_3 = 64
+  NUM_FILTER_3 = 64 
 
   NUM_NEURON_1 = 64
+  NUM_NEURON_2 = 10
 
   reg = 5e-4 # regularization strength
   #step_size = 1
-  step_size = 1e-3
+  step_size = 1e-4
 
 
   # initialize parameters randomly
@@ -150,21 +165,23 @@ if __name__ == '__main__':
   W2 = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
-  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
+  W3 = tf.Variable(tf.truncated_normal([4,4,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
   b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
 
 
   W4 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_3,NUM_NEURON_1], stddev=0.1))
   b4 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
 
-  W5 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,K], stddev=0.1))
-  b5 = tf.Variable(tf.ones([K])/10)
+  W5 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.1))
+  b5 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
 
+  W6 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
+  b6 = tf.Variable(tf.ones([K])/10)
 
   #Y1 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
-  Y1 = tf.nn.relu(tf.nn.max_pool(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME'))
-  Y2 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME') 
-  Y3 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
+  Y1 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y2 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME') 
+  Y3 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
 
   #Y1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1)
@@ -174,7 +191,8 @@ if __name__ == '__main__':
   YY = tf.reshape(Y3, shape=[-1,4*4*NUM_FILTER_3])
 
   Y4 = tf.nn.relu(tf.matmul(YY,W4)+b4)
-  Y  = tf.nn.softmax(tf.matmul(Y4,W5)+b5)
+  Y5 = tf.matmul(Y4,W5)+b5
+  Y  = tf.nn.softmax(tf.matmul(Y5,W6)+b6)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = 0.001
@@ -190,7 +208,8 @@ if __name__ == '__main__':
 
 
   # Passing global_step to minimize() will increment it at each step.
-  train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
+  #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(cross_entropy, global_step=global_step)
  
 
   # Add ops to save and restore all the variables.
@@ -206,7 +225,8 @@ if __name__ == '__main__':
   #saver.restore(sess, "./checkpoint/model_990000.ckpt")
   #print("Model restored.")
 
-
+  te_x, te_y = batchTestRead(te_data10, te_labels10)
+  print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
   for itr in xrange(1000000):
@@ -225,6 +245,7 @@ if __name__ == '__main__':
       save_path = saver.save(sess, model_name)
       #save_path = saver.save(sess, "./checkpoint/model.ckpt")
       print("Model saved in file: %s" % save_path)
+      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
@@ -234,11 +255,15 @@ if __name__ == '__main__':
 
 
 
-  x, y = batchTestRead(te_data10, te_labels10)
   #print(accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
   print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y})
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
   print "=                                                     ="
   print "======================================================="
 
 
+  x, y = batchTestRead(tr_data10, tr_labels10)
+  print "==================== Test Accuracy ===================="
+  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y})
+  print "=                                                     ="
+  print "======================================================="
