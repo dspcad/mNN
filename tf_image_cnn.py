@@ -115,13 +115,14 @@ def centeredData(input_data):
   #for i in range(len(input_data)):
   #  input_data[i] = np.subtract(input_data[i], center_img, casting='unsafe')
   input_data = np.subtract(input_data, center_img, casting='unsafe')
+  input_data = input_data/255
 
   return input_data, center_img
 
 
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
-  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
+  datapath = '/home/hhwu/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -134,6 +135,7 @@ if __name__ == '__main__':
 
   tr_data10, center_img = centeredData(tr_data10)
   te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  te_data10 = te_data10/255
  
   y = tr_labels10
 
@@ -142,22 +144,14 @@ if __name__ == '__main__':
   #########################################
   mini_batch = 100
   K = 10 # number of classes
-<<<<<<< HEAD
   NUM_FILTER_1 = 32
   NUM_FILTER_2 = 32
   NUM_FILTER_3 = 64 
-=======
-  NUM_FILTER_1 = 16
-  NUM_FILTER_2 = 16
-  NUM_FILTER_3 = 32
->>>>>>> e7100f5470ee635f9ac6f4e7e7caf0ca59fadd3f
 
   NUM_NEURON_1 = 64
   NUM_NEURON_2 = 10
 
   reg = 5e-4 # regularization strength
-  #step_size = 1
-  step_size = 1e-4
 
 
   # initialize parameters randomly
@@ -200,7 +194,7 @@ if __name__ == '__main__':
   Y  = tf.nn.softmax(tf.matmul(Y5,W6)+b6)
 
   global_step = tf.Variable(0, trainable=False)
-  starter_learning_rate = 0.001
+  starter_learning_rate = 0.01
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
                                            100000, 0.99, staircase=True)
 
@@ -234,7 +228,7 @@ if __name__ == '__main__':
   print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(1000000):
+  for itr in xrange(100000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y})
  
@@ -260,7 +254,9 @@ if __name__ == '__main__':
 
 
 
-  #print(accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
+  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  #te_data10 = te_data10/255
+  #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
   print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
   print "=                                                     ="
