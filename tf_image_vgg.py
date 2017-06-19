@@ -111,7 +111,7 @@ def batchTestRead(input_data, input_label):
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
   #datapath = '/home/hhwu/tensorflow_work/cifar-10-batches-py/'
-  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
+  datapath = '/home/hhwu/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
   reg = 5e-4 # regularization strength
   #step_size = 1
-  step_size = 1e-3
+  step_size = 1e-1
 
 
   # initialize parameters randomly
