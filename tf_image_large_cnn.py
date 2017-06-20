@@ -134,8 +134,8 @@ if __name__ == '__main__':
   print te_labels10.dtype
 
   tr_data10, center_img = centeredData(tr_data10)
-  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  te_data10 = te_data10/255.0
+  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  #te_data10 = te_data10/255.0
  
   y = tr_labels10
 
@@ -156,6 +156,9 @@ if __name__ == '__main__':
 
   reg = 5e-4 # regularization strength
 
+
+  # Dropout probability
+  keep_prob = tf.placeholder(tf.float32)
 
   # initialize parameters randomly
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
@@ -190,25 +193,34 @@ if __name__ == '__main__':
   W9 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
   b9 = tf.Variable(tf.ones([K])/10)
 
+  #===== architecture =====#
   Y1 = tf.nn.relu(tf.nn.conv2d(X, W1, strides=[1,1,1,1], padding='SAME')+b1)
-  Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y1_drop = tf.nn.dropout(Y1, keep_prob)
+  Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1_drop, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
   Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y3_drop = tf.nn.dropout(Y3, keep_prob)
+  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3_drop, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y5_drop = tf.nn.dropout(Y5, keep_prob)
+  Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5_drop, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
 
   YY = tf.reshape(Y6, shape=[-1,4*4*NUM_FILTER_6])
+  YY_drop = tf.nn.dropout(YY, keep_prob)
 
 
-  Y7 = tf.nn.relu(tf.matmul(YY,W7)+b7)
-  Y8 = tf.matmul(Y7,W8)+b8
-  Y  = tf.nn.softmax(tf.matmul(Y8,W9)+b9)
+  Y7 = tf.nn.relu(tf.matmul(YY_drop,W7)+b7)
+  Y7_drop = tf.nn.dropout(Y7, keep_prob)
+
+  Y8 = tf.matmul(Y7_drop,W8)+b8
+  Y8_drop = tf.nn.dropout(Y8, keep_prob)
+
+  Y  = tf.nn.softmax(tf.matmul(Y8_drop,W9)+b9)
 
   global_step = tf.Variable(0, trainable=False)
-  starter_learning_rate = 0.001
+  starter_learning_rate = 0.00001
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
                                            100000, 0.99, staircase=True)
 
@@ -238,27 +250,27 @@ if __name__ == '__main__':
   #saver.restore(sess, "./checkpoint/model_990000.ckpt")
   #print("Model restored.")
 
-  te_x, te_y = batchTestRead(te_data10, te_labels10)
+  #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
   for itr in xrange(100000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
-    sess.run(train_step, feed_dict={X: x, Y_: y})
+    sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob: 0.8})
  
     if itr % 100 == 0:
       print "iteration %d:  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr,
                                                               #step_size,
-                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y}),
-                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y}),
-                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
+                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}),
+                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}),
+                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}))
 
     if itr % 10000 == 0 and itr != 0:
       model_name = "./checkpoint/model_%d.ckpt" % itr
       save_path = saver.save(sess, model_name)
       #save_path = saver.save(sess, "./checkpoint/model.ckpt")
       print("Model saved in file: %s" % save_path)
-      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
+      #print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.8})
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
@@ -268,17 +280,17 @@ if __name__ == '__main__':
 
 
 
-  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  #te_data10 = te_data10/255
-  #te_x, te_y = batchTestRead(te_data10, te_labels10)
+  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  te_data10 = te_data10/255.0
+  te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.8})
   print "=                                                     ="
   print "======================================================="
 
 
   x, y = batchTestRead(tr_data10, tr_labels10)
   print "==================== Training Accuracy ===================="
-  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y})
+  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8})
   print "=                                                     ="
   print "==========================================================="
