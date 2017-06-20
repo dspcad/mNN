@@ -115,7 +115,7 @@ def centeredData(input_data):
   #for i in range(len(input_data)):
   #  input_data[i] = np.subtract(input_data[i], center_img, casting='unsafe')
   input_data = np.subtract(input_data, center_img, casting='unsafe')
-  input_data = input_data/255
+  input_data = input_data/255.0
 
   return input_data, center_img
 
@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
   tr_data10, center_img = centeredData(tr_data10)
   te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  te_data10 = te_data10/255
+  te_data10 = te_data10/255.0
  
   y = tr_labels10
 
@@ -149,10 +149,13 @@ if __name__ == '__main__':
   NUM_FILTER_3 = 64 
 
   NUM_NEURON_1 = 64
-  NUM_NEURON_2 = 10
+  NUM_NEURON_2 = 32
 
   reg = 5e-4 # regularization strength
 
+
+  # Dropout probability
+  keep_prob = tf.placeholder(tf.float32)
 
   # initialize parameters randomly
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
@@ -188,10 +191,14 @@ if __name__ == '__main__':
   #Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3)
 
   YY = tf.reshape(Y3, shape=[-1,4*4*NUM_FILTER_3])
+  YY_drop = tf.nn.dropout(YY, keep_prob)
 
-  Y4 = tf.nn.relu(tf.matmul(YY,W4)+b4)
+  Y4 = tf.nn.relu(tf.matmul(YY_drop,W4)+b4)
+  Y4_drop = tf.nn.dropout(Y4, keep_prob)
+
   Y5 = tf.matmul(Y4,W5)+b5
   Y  = tf.nn.softmax(tf.matmul(Y5,W6)+b6)
+
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = 0.01
@@ -221,30 +228,30 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
+  #saver.restore(sess, "./checkpoint/model_80000.ckpt")
   #print("Model restored.")
 
   te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(100000):
+  for itr in xrange(200000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
-    sess.run(train_step, feed_dict={X: x, Y_: y})
+    sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob: 0.5})
  
     if itr % 100 == 0:
       print "iteration %d:  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr,
                                                               #step_size,
-                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y}),
-                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y}),
-                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y}))
+                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5}),
+                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5}),
+                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5}))
 
     if itr % 10000 == 0 and itr != 0:
       model_name = "./checkpoint/model_%d.ckpt" % itr
       save_path = saver.save(sess, model_name)
       #save_path = saver.save(sess, "./checkpoint/model.ckpt")
       print("Model saved in file: %s" % save_path)
-      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
+      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.5})
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
@@ -255,16 +262,16 @@ if __name__ == '__main__':
 
 
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  #te_data10 = te_data10/255
+  #te_data10 = te_data10/255.0
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y})
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.5})
   print "=                                                     ="
   print "======================================================="
 
 
   x, y = batchTestRead(tr_data10, tr_labels10)
   print "==================== Test Accuracy ===================="
-  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y})
+  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5})
   print "=                                                     ="
   print "======================================================="
