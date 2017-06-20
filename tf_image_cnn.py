@@ -235,7 +235,7 @@ if __name__ == '__main__':
   print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(200000):
+  for itr in xrange(100000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob: 0.5})
  
