@@ -139,6 +139,8 @@ if __name__ == '__main__':
  
   y = tr_labels10
 
+  test_result = open("test_result.txt", 'w')
+
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
@@ -147,9 +149,9 @@ if __name__ == '__main__':
   NUM_FILTER_1 = 32
   NUM_FILTER_2 = 32
   NUM_FILTER_3 = 64 
+  NUM_FILTER_4 = 64 
 
-  NUM_NEURON_1 = 64
-  NUM_NEURON_2 = 32
+  NUM_NEURON_1 = 512
 
   reg = 5e-4 # regularization strength
 
@@ -161,49 +163,44 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
-  W1 = tf.Variable(tf.truncated_normal([5,5,3,NUM_FILTER_1], stddev=0.1))
+  W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
 
-  W2 = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
+  W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
-  W3 = tf.Variable(tf.truncated_normal([4,4,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
+  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
   b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
 
+  W4 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.1))
+  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
 
-  W4 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_3,NUM_NEURON_1], stddev=0.1))
-  b4 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
+  W5 = tf.Variable(tf.truncated_normal([8*8*NUM_FILTER_4,NUM_NEURON_1], stddev=0.1))
+  b5 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
 
-  W5 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.1))
-  b5 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
-
-  W6 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
+  W6 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,K], stddev=0.1))
   b6 = tf.Variable(tf.ones([K])/10)
 
-  #Y1 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
-  Y1 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y2 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME') 
-  Y3 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  #===== architecture =====#
+  Y1 = tf.nn.relu(tf.nn.conv2d(X, W1, strides=[1,1,1,1], padding='SAME')+b1)
+  Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y2_drop = tf.nn.dropout(Y2, keep_prob)
 
-
-  #Y1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,1,1,1], padding='SAME')+b1)
-  #Y2 = tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2)
-  #Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3)
-
-  YY = tf.reshape(Y3, shape=[-1,4*4*NUM_FILTER_3])
-  YY_drop = tf.nn.dropout(YY, keep_prob)
-
-  Y4 = tf.nn.relu(tf.matmul(YY_drop,W4)+b4)
+  Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
+  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
   Y4_drop = tf.nn.dropout(Y4, keep_prob)
 
-  Y5 = tf.matmul(Y4,W5)+b5
-  Y  = tf.nn.softmax(tf.matmul(Y5,W6)+b6)
+  YY = tf.reshape(Y4_drop, shape=[-1,8*8*NUM_FILTER_4])
 
+  Y5 = tf.nn.relu(tf.matmul(YY,W5)+b5)
+  Y5_drop = tf.nn.dropout(Y5, keep_prob)
+
+  Y  = tf.nn.softmax(tf.matmul(Y5_drop,W6)+b6)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = 0.01
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                           100000, 0.99, staircase=True)
+                                           10000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -228,8 +225,8 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  #saver.restore(sess, "./checkpoint/model_80000.ckpt")
-  #print("Model restored.")
+  saver.restore(sess, "./checkpoint/model_90000.ckpt")
+  print("Model restored.")
 
   te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
@@ -237,21 +234,23 @@ if __name__ == '__main__':
   #num_input_data =tr_data10.shape[0]
   for itr in xrange(100000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
-    sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob: 0.5})
+    sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob: 0.8})
  
     if itr % 100 == 0:
       print "iteration %d:  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr,
                                                               #step_size,
-                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5}),
-                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5}),
-                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5}))
+                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}),
+                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}),
+                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}))
 
     if itr % 10000 == 0 and itr != 0:
       model_name = "./checkpoint/model_%d.ckpt" % itr
       save_path = saver.save(sess, model_name)
       #save_path = saver.save(sess, "./checkpoint/model.ckpt")
       print("Model saved in file: %s" % save_path)
-      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.5})
+      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.8})
+      test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.5}))
+      test_result.write("\n")
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
@@ -265,13 +264,17 @@ if __name__ == '__main__':
   #te_data10 = te_data10/255.0
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.5})
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.8})
   print "=                                                     ="
   print "======================================================="
+  test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob: 0.5}))
+  test_result.write("\n")
+  test_result.close()
+
 
 
   x, y = batchTestRead(tr_data10, tr_labels10)
-  print "==================== Test Accuracy ===================="
-  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.5})
+  print "==================== Training Accuracy ===================="
+  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8})
   print "=                                                     ="
-  print "======================================================="
+  print "==========================================================="
