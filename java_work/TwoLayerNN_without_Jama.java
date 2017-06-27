@@ -11,6 +11,7 @@ import java.util.Random;
 
 public class TwoLayerNN_without_Jama {
     public static final int NUM_SAMPLE = 10000;
+    public static final int NUM_SAMPLE_SQRT = 100;
     public static final int NUM_ITERATION = 200;
 
     public static void main(String[] args) throws IOException {
@@ -19,8 +20,7 @@ public class TwoLayerNN_without_Jama {
         //int [] train_label_3 = new int[10000];
         //int [] train_label_4 = new int[10000];
         //int [] train_label_5 = new int[10000];
-
-        FileInputStream inputStream = new FileInputStream("../../../cifar-10-batches-bin/data_batch_1.bin");
+        FileInputStream inputStream = new FileInputStream("../../cifar-10-batches-bin/data_batch_1.bin");
         ArrayList<int[]> train_images_1 = batchRead(inputStream, train_label_1);
 
         //inputStream = new FileInputStream("../../cifar-10-batches-bin/data_batch_2.bin");
@@ -81,8 +81,8 @@ public class TwoLayerNN_without_Jama {
             reg_loss = 0.5*reg_strength*regLoss(weight_matrix_1) + 0.5*reg_strength*regLoss(weight_matrix_2);
             loss = data_loss + reg_loss;
 
-            if(i % 10 == 0)
-                System.out.println("iteration "+i+": loss: "+loss+" training accuracy: "+evalAccuracy(exp_scores, train_label_1));
+            //if(i % 10 == 0)
+            System.out.println("iteration "+i+": loss: "+loss+" training accuracy: "+evalAccuracy(exp_scores, train_label_1));
             
             dscores = gradientComputation(exp_scores, train_label_1); //10 x 10000
             dW2 = matrixTimes(dscores, 10, 10000, matrixTranspose(hidden_layer, 50, 10000), 10000, 50); //10 x 50
@@ -233,7 +233,7 @@ public class TwoLayerNN_without_Jama {
 
         for(int i=0;i<row;i++)
             for(int j=0;j<col;j++)
-                sum += Math.pow(W[i][j], 2);
+                sum += W[i][j]*W[i][j];
 
         return sum;
     }
@@ -243,7 +243,8 @@ public class TwoLayerNN_without_Jama {
         double sum = 0;
 
         for(int i=0;i<NUM_SAMPLE;i++)
-            sum -= Math.log(exp_scores[ train_label[i] ][i]);
+            sum -= logTaylorSeries(exp_scores[ train_label[i] ][i]);
+            //sum -= Math.log(exp_scores[ train_label[i] ][i]);
         
         return sum/NUM_SAMPLE;
     }
@@ -274,12 +275,51 @@ public class TwoLayerNN_without_Jama {
 
         for(int i=0;i<10;i++)
             for(int j=0;j<10000;j++){
-                scores[i][j] =Math.exp(result[i][j] + b[i]);
+                scores[i][j] = expTaylorSeries(result[i][j] + b[i]);
+                //scores[i][j] =Math.exp(result[i][j] + b[i]);
                 //System.out.println("score: "+scores[i][j]);
 
             }
 
         return scores;            
+    }
+
+    public static double logTaylorSeries(double x){
+      double a = x - 1;
+      double product = 1;
+      double sum = 0;
+
+      //return 2*( a/b + (1/3)*( (a*a*a)/(b*b*b) ) + (1/5)*( (a*a*a*a*a)/(b*b*b*b*b) ) + (1/7)*((a*a*a*a*a*a*a)/(b*b*b*b*b*b*b)) +
+      //          (1/9)*((a*a*a*a*a*a*a*a*a)/(b*b*b*b*b*b*b*b*b)) + (1/11)*((a*a*a*a*a*a*a*a*a*a*a)/(b*b*b*b*b*b*b*b*b*b*b)) );
+      
+      for(int i=1;i<=50;i++){
+        product *= a;
+
+        if (i%2 == 1)
+          sum += product/i;
+        else
+          sum -= product/i;
+      }
+
+      return sum;
+    }
+
+
+
+    public static double expTaylorSeries(double x){
+      double product = 1;
+      double factor = 1;
+      double sum = 1;
+
+      for(int i=1;i<=50;i++){
+        product *= x;
+        factor *= i;
+
+        sum += product/factor;
+      }
+
+      //return 1 + x + (x*x/2) + (x*x*x/6) + (x*x*x*x)/24 + (x*x*x*x*x)/120;
+      return sum;
     }
 
     public static double [][] matrixTranspose(double [][] M, int row, int col){
@@ -349,7 +389,7 @@ public class TwoLayerNN_without_Jama {
 
         for(int i=0; i<row; i++)
             for(int j=0; j<col; j++)
-                W[i][j] = 0.01*normal_var.nextGaussian()/Math.sqrt(NUM_SAMPLE); 
+                W[i][j] = 0.01*normal_var.nextGaussian()/NUM_SAMPLE_SQRT; 
 
 
         return W;
