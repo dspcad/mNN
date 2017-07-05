@@ -106,19 +106,6 @@ def batchTestRead(input_data, input_label):
   return img_batch, test_y
 
 
-def centeredData(input_data):
-  center_img = np.zeros((1,32*32*3), dtype=np.float32)
-  for i in range(len(input_data)):
-    center_img += input_data[i]
-
-  center_img = center_img/len(input_data)
-  #for i in range(len(input_data)):
-  #  input_data[i] = np.subtract(input_data[i], center_img, casting='unsafe')
-  input_data = np.subtract(input_data, center_img, casting='unsafe')
-  input_data = input_data/255.0
-
-  return input_data, center_img
-
 
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
@@ -133,10 +120,21 @@ if __name__ == '__main__':
   print te_data10.shape
   print te_labels10.dtype
 
-  tr_data10, center_img = centeredData(tr_data10)
-  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  te_data10 = te_data10/255.0
+  center_img = np.mean(tr_data10,axis=0)
+  std_img = np.std(tr_data10,axis=0)
+
+  print center_img
+  print center_img.shape
+  print std_img
+  print std_img.shape
  
+  tr_data10 = np.subtract(tr_data10, center_img, casting='unsafe')
+  tr_data10 /= std_img
+
+  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  te_data10 /= std_img
+
+
   y = tr_labels10
 
   test_result = open("test_result.txt", 'w')
@@ -156,8 +154,8 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 256
   NUM_NEURON_2 = 128
 
-  DROPOUT_PROB_1 = 0.80
-  DROPOUT_PROB_2 = 0.50
+  DROPOUT_PROB_1 = 1.00
+  DROPOUT_PROB_2 = 1.00
 
   LEARNING_RATE = 1e-3
  
@@ -229,7 +227,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                           50000, 0.9, staircase=True)
+                                            50000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -296,6 +294,10 @@ if __name__ == '__main__':
       idx_start += mini_batch
 
 
+    if itr % 50000 == 0 and itr != 0:
+      DROPOUT_PROB_1 = 0.8
+      DROPOUT_PROB_2 = 0.8
+
 
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
   #te_data10 = te_data10/255.0
@@ -311,9 +313,9 @@ if __name__ == '__main__':
   test_result.write("\n")
 
 
-  x, y = batchTestRead(tr_data10, tr_labels10)
-  print "==================== Training Accuracy ===================="
-  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1,
-                                                                                       keep_prob_2: DROPOUT_PROB_2})
-  print "=                                                     ="
-  print "==========================================================="
+  #x, y = batchTestRead(tr_data10, tr_labels10)
+  #print "==================== Training Accuracy ===================="
+  #print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1,
+  #                                                                                     keep_prob_2: DROPOUT_PROB_2})
+  #print "=                                                     ="
+  #print "==========================================================="
