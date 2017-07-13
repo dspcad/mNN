@@ -106,19 +106,6 @@ def batchTestRead(input_data, input_label):
   return img_batch, test_y
 
 
-def centeredData(input_data):
-  center_img = np.zeros((1,32*32*3), dtype=np.float32)
-  for i in range(len(input_data)):
-    center_img += input_data[i]
-
-  center_img = center_img/len(input_data)
-  #for i in range(len(input_data)):
-  #  input_data[i] = np.subtract(input_data[i], center_img, casting='unsafe')
-  input_data = np.subtract(input_data, center_img, casting='unsafe')
-  input_data = input_data/255.0
-
-  return input_data, center_img
-
 
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
@@ -133,10 +120,20 @@ if __name__ == '__main__':
   print te_data10.shape
   print te_labels10.dtype
 
-  tr_data10, center_img = centeredData(tr_data10)
-  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  te_data10 = te_data10/255.0
+  center_img = np.mean(tr_data10,axis=0)
+  std_img = np.std(tr_data10,axis=0)
+  print center_img
+  print center_img.shape
+  print std_img
+  print std_img.shape
  
+  tr_data10 = np.subtract(tr_data10, center_img, casting='unsafe')
+  tr_data10 /= 255.0
+
+  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  #te_data10 /= std_img
+
+
   y = tr_labels10
 
   test_result = open("test_result.txt", 'w')
@@ -148,10 +145,8 @@ if __name__ == '__main__':
   K = 10 # number of classes
   NUM_FILTER_1 = 32
   NUM_FILTER_2 = 32
-  NUM_FILTER_3 = 64 
-  NUM_FILTER_4 = 64 
 
-  NUM_NEURON_1 = 512
+  NUM_NEURON_1 = 1024
 
   reg = 5e-4 # regularization strength
 
@@ -169,13 +164,7 @@ if __name__ == '__main__':
   W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
-  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
-  b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
-
-  W4 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.1))
-  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
-
-  W5 = tf.Variable(tf.truncated_normal([8*8*NUM_FILTER_4,NUM_NEURON_1], stddev=0.1))
+  W5 = tf.Variable(tf.truncated_normal([16*16*NUM_FILTER_2,NUM_NEURON_1], stddev=0.1))
   b5 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
 
   W6 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,K], stddev=0.1))
@@ -186,11 +175,7 @@ if __name__ == '__main__':
   Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
   Y2_drop = tf.nn.dropout(Y2, keep_prob)
 
-  Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y4_drop = tf.nn.dropout(Y4, keep_prob)
-
-  YY = tf.reshape(Y4_drop, shape=[-1,8*8*NUM_FILTER_4])
+  YY = tf.reshape(Y2_drop, shape=[-1,16*16*NUM_FILTER_2])
 
   Y5 = tf.nn.relu(tf.matmul(YY,W5)+b5)
   Y5_drop = tf.nn.dropout(Y5, keep_prob)
@@ -225,14 +210,14 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  saver.restore(sess, "./checkpoint/model_90000.ckpt")
-  print("Model restored.")
+  #saver.restore(sess, "./checkpoint/model_90000.ckpt")
+  #print("Model restored.")
 
-  te_x, te_y = batchTestRead(te_data10, te_labels10)
+  #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(100000):
+  for itr in xrange(200000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob: 0.8})
  
@@ -243,7 +228,7 @@ if __name__ == '__main__':
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}),
                                                               accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8}))
 
-    if itr % 10000 == 0 and itr != 0:
+    if itr % 1000 == 0 and itr != 0:
       model_name = "./checkpoint/model_%d.ckpt" % itr
       save_path = saver.save(sess, model_name)
       #save_path = saver.save(sess, "./checkpoint/model.ckpt")
@@ -273,8 +258,8 @@ if __name__ == '__main__':
 
 
 
-  x, y = batchTestRead(tr_data10, tr_labels10)
-  print "==================== Training Accuracy ===================="
-  print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8})
-  print "=                                                     ="
-  print "==========================================================="
+  #x, y = batchTestRead(tr_data10, tr_labels10)
+  #print "==================== Training Accuracy ===================="
+  #print "Training Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob: 0.8})
+  #print "=                                                     ="
+  #print "==========================================================="
