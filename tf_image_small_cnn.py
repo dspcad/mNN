@@ -109,7 +109,7 @@ def batchTestRead(input_data, input_label):
 
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
-  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
+  datapath = '/home/hhwu/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -145,7 +145,7 @@ if __name__ == '__main__':
   mini_batch = 100
   K = 10 # number of classes
   NUM_FILTER_1 = 8
-  NUM_FILTER_2 = 8
+  NUM_FILTER_2 = 24
 
   NUM_NEURON_1 = 80
   NUM_NEURON_2 = 40
@@ -166,11 +166,11 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
-  W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
-  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
+  W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1), name='w1')
+  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10, name='b1')
 
-  W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
-  b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
+  W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1), name='w2')
+  b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10, name='b2')
 
 
   W3 = tf.Variable(tf.truncated_normal([16*16*NUM_FILTER_2,NUM_NEURON_1], stddev=0.1))
@@ -213,8 +213,10 @@ if __name__ == '__main__':
   train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(cross_entropy, global_step=global_step)
  
 
-  # Add ops to save and restore all the variables.
-  saver = tf.train.Saver() 
+  #####################################################
+  #        Save the W1 and W2 parameters only         #
+  #####################################################
+  saver = tf.train.Saver([W1,W2]) 
 
   #learning_rate = tf.placeholder(tf.float32, shape=[])
   #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
@@ -223,7 +225,7 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
+  #saver.restore(sess, "./checkpoint/model_small.ckpt")
   #print("Model restored.")
 
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
@@ -247,9 +249,6 @@ if __name__ == '__main__':
                                                                                                      keep_prob_1: DROPOUT_PROB_1, 
                                                                                                      keep_prob_2: DROPOUT_PROB_2}))
 
-    if itr % 5000 == 0 and itr != 0:
-      model_name = "./checkpoint/model_%d.ckpt" % itr
-      save_path = saver.save(sess, model_name)
     #  #save_path = saver.save(sess, "./checkpoint/model.ckpt")
     #  print("Model saved in file: %s" % save_path)
     #  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
@@ -264,19 +263,21 @@ if __name__ == '__main__':
     else:
       idx_start += mini_batch
 
+  model_name = "./checkpoint/model_small_1.ckpt"
+  save_path = saver.save(sess, model_name)
 
-  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  te_data10 = te_data10/std_img
-  te_x, te_y = batchTestRead(te_data10, te_labels10)
-  print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
-                                                                                         keep_prob_2: DROPOUT_PROB_2})
-  print "=                                                     ="
-  print "======================================================="
-  test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: DROPOUT_PROB_1, 
-                                                                                      keep_prob_2: DROPOUT_PROB_2}))
-  test_result.write("\n")
+  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  #te_data10 = te_data10/std_img
+  #te_x, te_y = batchTestRead(te_data10, te_labels10)
+  #print "==================== Test Accuracy ===================="
+  #print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
+  #                                                                                       keep_prob_2: DROPOUT_PROB_2})
+  #print "=                                                     ="
+  #print "======================================================="
+  #test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
+  #                                                                                    keep_prob_1: DROPOUT_PROB_1, 
+  #                                                                                    keep_prob_2: DROPOUT_PROB_2}))
+  #test_result.write("\n")
 
 
   #x, y = batchTestRead(tr_data10, tr_labels10)

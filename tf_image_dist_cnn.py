@@ -106,7 +106,67 @@ def batchTestRead(input_data, input_label):
   return img_batch, test_y
 
 
+def restoreParamsFromModels(sess):
+  x = np.zeros((1,32,32,3))
+  y = np.zeros((1,10))
 
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_1.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_1.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+  print "small model 1 is restored."
+  #print W1.get_shape().as_list()
+
+  filter_m1_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m1_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+
+
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_2.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_2.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+
+  filter_m2_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m2_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  print "small model 2 is restored."
+
+
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_3.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_3.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+
+  filter_m3_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m3_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  print "small model 3 is restored."
+
+  pre_trained_W1 = np.concatenate((filter_m1_W1,filter_m2_W1),axis=-1)
+  pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m3_W1),axis=-1)
+  #print W1
+  print pre_trained_W1.shape
+
+
+  pre_trained_W2 = np.concatenate((filter_m1_W2,filter_m2_W2),axis=2)
+  pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m3_W2),axis=2)
+  #print W2
+  print pre_trained_W2.shape
+
+  W1 = tf.Variable(pre_trained_W1)
+  W2 = tf.Variable(pre_trained_W2)
+
+  #W1.assign(pre_trained_W1)
+  #W2.assign(pre_trained_W2)
+
+  sess.run(tf.global_variables_initializer())
+  return W1, W2
+
+
+#########################################
+#             Main Program              #
+#########################################
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
   datapath = '/home/hhwu/cifar-10-batches-py/'
@@ -139,6 +199,7 @@ if __name__ == '__main__':
 
   test_result = open("test_result.txt", 'w')
 
+
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
@@ -170,10 +231,12 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
-  W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
+  #W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
+  W1 = tf.Variable(tf.zeros([3,3,3,NUM_FILTER_1]))
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
 
-  W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
+  #W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
+  W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
   W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
@@ -242,16 +305,15 @@ if __name__ == '__main__':
   train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(cross_entropy, global_step=global_step)
  
 
-  # Add ops to save and restore all the variables.
-  saver = tf.train.Saver() 
 
   #learning_rate = tf.placeholder(tf.float32, shape=[])
   #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
   sess = tf.Session()
+  #saver = tf.train.Saver() 
  
   #####################################################
-  #         Restore the variables from disk           #
+  #       Restore the variables from checkpoint       #
   #####################################################
   #saver.restore(sess, "./checkpoint/model_490000.ckpt")
   #print("Model restored.")
@@ -261,67 +323,27 @@ if __name__ == '__main__':
   #####################################################
   #      Restore the paramters of some filters        #
   #####################################################
-  idx_start = 0
-  x, y = batchRead(tr_data10, tr_labels10, idx_start)
-
-  #saver.restore(sess, "./checkpoint/model_5000.ckpt")
-#  saver = tf.train.import_meta_graph('./checkpoint/model_small_1.ckpt.meta')
-#  saver.restore(sess, "./checkpoint/model_small_1.ckpt")
-#  graph = tf.get_default_graph()
-#  w1 = graph.get_tensor_by_name("w1:0")
-#  w2 = graph.get_tensor_by_name("w2:0")
-#  print "small model 1 is restored."
-#  #print W1.get_shape().as_list()
-#
-#  filter_a_1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-#  filter_a_2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-#
-#
-#  saver = tf.train.import_meta_graph('./checkpoint/model_small_2.ckpt.meta')
-#  saver.restore(sess, "./checkpoint/model_small_2.ckpt")
-#  graph = tf.get_default_graph()
-#  w1 = graph.get_tensor_by_name("w1:0")
-#  w2 = graph.get_tensor_by_name("w2:0")
-#
-#  filter_b_1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-#  filter_b_2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-#  print "small model 2 is restored."
-#
-#
-#  saver = tf.train.import_meta_graph('./checkpoint/model_small_3.ckpt.meta')
-#  saver.restore(sess, "./checkpoint/model_small_3.ckpt")
-#  graph = tf.get_default_graph()
-#  w1 = graph.get_tensor_by_name("w1:0")
-#  w2 = graph.get_tensor_by_name("w2:0")
-#
-#  filter_c_1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-#  filter_c_2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-#  print "small model 3 is restored."
-#
-#  pre_trained_w1 = np.concatenate((filter_a_1,filter_b_1),axis=-1)
-#  pre_trained_w1 = np.concatenate((pre_trained_w1,filter_c_1),axis=-1)
-#  #print pre_trained_w1
-#  print pre_trained_w1.shape
-#
-#
-#  pre_trained_w2 = np.concatenate((filter_a_2,filter_b_2),axis=2)
-#  pre_trained_w2 = np.concatenate((pre_trained_w2,filter_c_2),axis=2)
-#  #print pre_trained_w2
-#  print pre_trained_w2.shape
-#
-#  W1 = tf.Variable(pre_trained_w1)
-#  W2 = tf.Variable(pre_trained_w2)
-  sess.run(tf.global_variables_initializer())
+  W1, W2 = restoreParamsFromModels(sess)
 
 
-  #print '-------------------------------------------------'
-  #print sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
 
-  #te_x, te_y = batchTestRead(te_data10, te_labels10)
+  #####################################################
+  #       Default saver for saving parameters        #
+  #####################################################
+  #saver = tf.train.Saver() 
+  #sess.run(tf.global_variables_initializer())
+
+
+  #####################################################
+  #             Load the test dataset                 #
+  #####################################################
+  te_x, te_y = batchTestRead(te_data10, te_labels10)
+
+
   print '  Start training... '
   idx_start = 0
   
-  for itr in xrange(500000):
+  for itr in xrange(20000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
@@ -339,10 +361,10 @@ if __name__ == '__main__':
                                                                                                      keep_prob_2: DROPOUT_PROB_2}))
 
     if itr % 10000 == 0 and itr != 0:
-      model_name = "./checkpoint/model_%d.ckpt" % itr
-      save_path = saver.save(sess, model_name)
-      #save_path = saver.save(sess, "./checkpoint/model.ckpt")
-      print("Model saved in file: %s" % save_path)
+      #saver = tf.train.import_meta_graph('./checkpoint/model_490000.ckpt.meta')
+      #model_name = "./checkpoint/model_%d.ckpt" % itr
+      #save_path = saver.save(sess, model_name)
+      #print("Model saved in file: %s" % save_path)
       print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
       test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
                                                                                       keep_prob_1: DROPOUT_PROB_1, 
@@ -365,8 +387,6 @@ if __name__ == '__main__':
         DROPOUT_PROB_2 = 0.8
 
 
-  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  #te_data10 = te_data10/255.0
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
   print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
