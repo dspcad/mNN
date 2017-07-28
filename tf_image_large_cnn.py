@@ -56,6 +56,14 @@ def batchRead(input_data, input_label,start):
 
     img = np.rollaxis(img, 0, 3) # 32 X 32 X 3
 
+
+    ############################
+    # Flip the image with 0.5  #
+    ############################
+    if np.random.uniform(0,1) <= 0.5:
+      img_flip = np.fliplr(img)
+
+
     if i == 0:
       img_batch = img
       label_batch = input_label[batch_idx[i]]
@@ -220,9 +228,10 @@ if __name__ == '__main__':
   Y7 = tf.nn.relu(tf.matmul(YY_drop,W7)+b7)
   Y7_drop = tf.nn.dropout(Y7, keep_prob_2)
 
-  Y8 = tf.matmul(Y7_drop,W8)+b8
+  Y8 = tf.nn.relu(tf.matmul(Y7_drop,W8)+b8)
+  Y8_drop = tf.nn.dropout(Y8, keep_prob_2)
 
-  Y  = tf.nn.softmax(tf.matmul(Y8,W9)+b9)
+  Y  = tf.nn.softmax(tf.matmul(Y8_drop,W9)+b9)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
@@ -264,11 +273,11 @@ if __name__ == '__main__':
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
     if itr % 100 == 0:
-      print "iteration %d:  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr,
-                                                              #step_size,
+      print "iteration %d:  learning rate: %f  dropout: %f  cross entropy: %f  accuracy: %f" % (itr,
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
                                                                                                           keep_prob_2: DROPOUT_PROB_2}),
+                                                              DROPOUT_PROB_1,
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
                                                                                                           keep_prob_2: DROPOUT_PROB_2}),
@@ -295,8 +304,8 @@ if __name__ == '__main__':
 
 
     if itr % 50000 == 0 and itr != 0:
-      DROPOUT_PROB_1 = 0.8
-      DROPOUT_PROB_2 = 0.8
+      DROPOUT_PROB_1 = 1.0
+      DROPOUT_PROB_2 = 1.0
 
 
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
