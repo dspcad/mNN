@@ -191,9 +191,12 @@ if __name__ == '__main__':
   YY = tf.reshape(Y2_drop, shape=[-1,16*16*NUM_FILTER_2])
 
   Y3 = tf.nn.relu(tf.matmul(YY,W3)+b3)
-  Y4 = tf.matmul(Y3,W4)+b4
+  Y3_drop = tf.nn.dropout(Y3, keep_prob_2)
 
-  Y  = tf.nn.softmax(tf.matmul(Y4,W5)+b5)
+  Y4 = tf.nn.relu(tf.matmul(Y3_drop,W4)+b4)
+  Y4_drop = tf.nn.dropout(Y4, keep_prob_2)
+
+  Y  = tf.nn.softmax(tf.matmul(Y4_drop,W5)+b5)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
@@ -263,7 +266,7 @@ if __name__ == '__main__':
     else:
       idx_start += mini_batch
 
-  model_name = "./checkpoint/model_small_1.ckpt"
+  model_name = "./checkpoint/model_small_3.ckpt"
   save_path = saver.save(sess, model_name)
 
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')

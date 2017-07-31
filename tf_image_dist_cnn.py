@@ -113,13 +113,72 @@ def batchTestRead(input_data, input_label):
 
   return img_batch, test_y
 
+def restoreParamsFromModels(sess):
+  x = np.zeros((1,32,32,3))
+  y = np.zeros((1,10))
+
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_1.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_1.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+  print "small model 1 is restored."
+  #print W1.get_shape().as_list()
+
+  filter_m1_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m1_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+
+
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_2.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_2.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+
+  filter_m2_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m2_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  print "small model 2 is restored."
+
+
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_3.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_3.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+
+  filter_m3_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m3_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  print "small model 3 is restored."
+
+  pre_trained_W1 = np.concatenate((filter_m1_W1,filter_m2_W1),axis=-1)
+  pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m3_W1),axis=-1)
+  #print W1
+  print pre_trained_W1.shape
+
+
+  pre_trained_W2 = np.concatenate((filter_m1_W2,filter_m2_W2),axis=2)
+  pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m3_W2),axis=2)
+  #print W2
+  print pre_trained_W2.shape
+
+  W1 = tf.Variable(pre_trained_W1)
+  W2 = tf.Variable(pre_trained_W2)
+
+  #W1.assign(pre_trained_W1)
+  #W2.assign(pre_trained_W2)
+
+  sess.run(tf.global_variables_initializer())
+  return W1, W2
+
+
+
 
 #########################################
 #             Main Program              #
 #########################################
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
-  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
+  datapath = '/home/hhwu/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
