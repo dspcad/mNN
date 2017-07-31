@@ -60,8 +60,8 @@ def batchRead(input_data, input_label,start):
     ############################
     # Flip the image with 0.5  #
     ############################
-    if np.random.uniform(0,1) <= 0.5:
-      img_flip = np.fliplr(img)
+    #if np.random.uniform(0,1) <= 0.5:
+    #  img_flip = np.fliplr(img)
 
 
     if i == 0:
@@ -151,6 +151,9 @@ if __name__ == '__main__':
   #  Configuration of CNN architecture    #
   #########################################
   mini_batch = 100
+  num_training_imgs = tr_data10.shape[0]
+  epoch_num = num_training_imgs/mini_batch
+
   K = 10 # number of classes
   NUM_FILTER_1 = 24
   NUM_FILTER_2 = 24
@@ -162,12 +165,12 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 256
   NUM_NEURON_2 = 128
 
-  DROPOUT_PROB_1 = 1.00
-  DROPOUT_PROB_2 = 1.00
+  DROPOUT_PROB_1 = 0.80
+  DROPOUT_PROB_2 = 0.50
 
   LEARNING_RATE = 1e-3
  
-  reg = 5e-4 # regularization strength
+  reg = 1e-3 # regularization strength
 
 
   # Dropout probability
@@ -218,14 +221,13 @@ if __name__ == '__main__':
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
   Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y6_drop = tf.nn.dropout(Y6, keep_prob_1)
+  Y6_drop = tf.nn.dropout(Y6, keep_prob_2)
 
 
   YY = tf.reshape(Y6_drop, shape=[-1,4*4*NUM_FILTER_6])
-  YY_drop = tf.nn.dropout(YY, keep_prob_2)
 
 
-  Y7 = tf.nn.relu(tf.matmul(YY_drop,W7)+b7)
+  Y7 = tf.nn.relu(tf.matmul(YY,W7)+b7)
   Y7_drop = tf.nn.dropout(Y7, keep_prob_2)
 
   Y8 = tf.nn.relu(tf.matmul(Y7_drop,W8)+b8)
@@ -236,7 +238,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                            50000, 0.9, staircase=True)
+                                             100000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -261,23 +263,28 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
-  #print("Model restored.")
+  saver.restore(sess, "./checkpoint/model_990000.ckpt")
+  print("Model restored.")
 
   te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
+  epoch_counter = 0
+
+  max_test_acc = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(300000):
+  for itr in xrange(1000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
+ 
     if itr % 100 == 0:
-      print "iteration %d:  learning rate: %f  dropout: %f  cross entropy: %f  accuracy: %f" % (itr,
+      print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
                                                                                                           keep_prob_2: DROPOUT_PROB_2}),
                                                               DROPOUT_PROB_1,
+                                                              DROPOUT_PROB_2,
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
                                                                                                           keep_prob_2: DROPOUT_PROB_2}),
@@ -285,16 +292,27 @@ if __name__ == '__main__':
                                                                                                      keep_prob_1: DROPOUT_PROB_1, 
                                                                                                      keep_prob_2: DROPOUT_PROB_2}))
 
+
+    if itr % epoch_num == 0:
+      print "Epoch %d" % epoch_counter
+      test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+
+      if test_acc > max_test_acc:
+        max_test_acc = test_acc
+
+      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
+      test_result.write("\n")
+
+      epoch_counter += 1
+
+
     if itr % 10000 == 0 and itr != 0:
       model_name = "./checkpoint/model_%d.ckpt" % itr
       save_path = saver.save(sess, model_name)
       #save_path = saver.save(sess, "./checkpoint/model.ckpt")
       print("Model saved in file: %s" % save_path)
-      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-      test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: DROPOUT_PROB_1, 
-                                                                                      keep_prob_2: DROPOUT_PROB_2}))
-      test_result.write("\n")
+
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
@@ -303,22 +321,22 @@ if __name__ == '__main__':
       idx_start += mini_batch
 
 
-    if itr % 50000 == 0 and itr != 0:
-      DROPOUT_PROB_1 = 1.0
-      DROPOUT_PROB_2 = 1.0
+    #if itr % 50000 == 0 and itr != 0:
+    #  DROPOUT_PROB_1 = 1.0
+    #  DROPOUT_PROB_2 = 0.5
 
 
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
   #te_data10 = te_data10/255.0
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
-                                                                                         keep_prob_2: DROPOUT_PROB_2})
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0,
+                                                                                         keep_prob_2: 1.0})
   print "=                                                     ="
   print "======================================================="
   test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: DROPOUT_PROB_1, 
-                                                                                      keep_prob_2: DROPOUT_PROB_2}))
+                                                                                      keep_prob_1: 1.0, 
+                                                                                      keep_prob_2: 1.0}))
   test_result.write("\n")
 
 
