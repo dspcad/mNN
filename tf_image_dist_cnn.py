@@ -56,6 +56,14 @@ def batchRead(input_data, input_label,start):
 
     img = np.rollaxis(img, 0, 3) # 32 X 32 X 3
 
+
+    ############################
+    # Flip the image with 0.5  #
+    ############################
+    #if np.random.uniform(0,1) <= 0.5:
+    #  img_flip = np.fliplr(img)
+
+
     if i == 0:
       img_batch = img
       label_batch = input_label[batch_idx[i]]
@@ -106,70 +114,12 @@ def batchTestRead(input_data, input_label):
   return img_batch, test_y
 
 
-def restoreParamsFromModels(sess):
-  x = np.zeros((1,32,32,3))
-  y = np.zeros((1,10))
-
-  saver = tf.train.import_meta_graph('./checkpoint/model_small_1.ckpt.meta')
-  saver.restore(sess, "./checkpoint/model_small_1.ckpt")
-  graph = tf.get_default_graph()
-  w1 = graph.get_tensor_by_name("w1:0")
-  w2 = graph.get_tensor_by_name("w2:0")
-  print "small model 1 is restored."
-  #print W1.get_shape().as_list()
-
-  filter_m1_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  filter_m1_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-
-
-  saver = tf.train.import_meta_graph('./checkpoint/model_small_2.ckpt.meta')
-  saver.restore(sess, "./checkpoint/model_small_2.ckpt")
-  graph = tf.get_default_graph()
-  w1 = graph.get_tensor_by_name("w1:0")
-  w2 = graph.get_tensor_by_name("w2:0")
-
-  filter_m2_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  filter_m2_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  print "small model 2 is restored."
-
-
-  saver = tf.train.import_meta_graph('./checkpoint/model_small_3.ckpt.meta')
-  saver.restore(sess, "./checkpoint/model_small_3.ckpt")
-  graph = tf.get_default_graph()
-  w1 = graph.get_tensor_by_name("w1:0")
-  w2 = graph.get_tensor_by_name("w2:0")
-
-  filter_m3_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  filter_m3_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  print "small model 3 is restored."
-
-  pre_trained_W1 = np.concatenate((filter_m1_W1,filter_m2_W1),axis=-1)
-  pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m3_W1),axis=-1)
-  #print W1
-  print pre_trained_W1.shape
-
-
-  pre_trained_W2 = np.concatenate((filter_m1_W2,filter_m2_W2),axis=2)
-  pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m3_W2),axis=2)
-  #print W2
-  print pre_trained_W2.shape
-
-  W1 = tf.Variable(pre_trained_W1)
-  W2 = tf.Variable(pre_trained_W2)
-
-  #W1.assign(pre_trained_W1)
-  #W2.assign(pre_trained_W2)
-
-  sess.run(tf.global_variables_initializer())
-  return W1, W2
-
-
 #########################################
 #             Main Program              #
 #########################################
 if __name__ == '__main__':
   print '===== Start loadin CIFAR10 ====='
-  datapath = '/home/hhwu/cifar-10-batches-py/'
+  datapath = '/home/hhwu/tensorflow_work/cs231n/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
   print '  load CIFAR10 ... '
@@ -199,11 +149,13 @@ if __name__ == '__main__':
 
   test_result = open("test_result.txt", 'w')
 
-
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
   mini_batch = 100
+  num_training_imgs = tr_data10.shape[0]
+  epoch_num = num_training_imgs/mini_batch
+
   K = 10 # number of classes
   NUM_FILTER_1 = 24
   NUM_FILTER_2 = 24
@@ -215,12 +167,12 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 256
   NUM_NEURON_2 = 128
 
-  DROPOUT_PROB_1 = 1.0
-  DROPOUT_PROB_2 = 1.0
+  DROPOUT_PROB_1 = 0.80
+  DROPOUT_PROB_2 = 0.50
 
   LEARNING_RATE = 1e-3
  
-  reg = 5e-4 # regularization strength
+  reg = 1e-3 # regularization strength
 
 
   # Dropout probability
@@ -231,12 +183,10 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
-  #W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
-  W1 = tf.Variable(tf.zeros([3,3,3,NUM_FILTER_1]))
+  W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
 
-  #W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
-  W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
+  W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
   W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
@@ -273,24 +223,24 @@ if __name__ == '__main__':
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
   Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y6_drop = tf.nn.dropout(Y6, keep_prob_1)
+  Y6_drop = tf.nn.dropout(Y6, keep_prob_2)
 
 
   YY = tf.reshape(Y6_drop, shape=[-1,4*4*NUM_FILTER_6])
-  YY_drop = tf.nn.dropout(YY, keep_prob_2)
 
 
-  Y7 = tf.nn.relu(tf.matmul(YY_drop,W7)+b7)
+  Y7 = tf.nn.relu(tf.matmul(YY,W7)+b7)
   Y7_drop = tf.nn.dropout(Y7, keep_prob_2)
 
-  Y8 = tf.matmul(Y7_drop,W8)+b8
+  Y8 = tf.nn.relu(tf.matmul(Y7_drop,W8)+b8)
+  Y8_drop = tf.nn.dropout(Y8, keep_prob_2)
 
-  Y  = tf.nn.softmax(tf.matmul(Y8,W9)+b9)
+  Y  = tf.nn.softmax(tf.matmul(Y8_drop,W9)+b9)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                            50000, 0.9, staircase=True)
+                                             100000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -305,13 +255,8 @@ if __name__ == '__main__':
   train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(cross_entropy, global_step=global_step)
  
 
-
-  #learning_rate = tf.placeholder(tf.float32, shape=[])
-  #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
-
   sess = tf.Session()
-  #saver = tf.train.Saver() 
- 
+
   #####################################################
   #       Restore the variables from checkpoint       #
   #####################################################
@@ -342,17 +287,23 @@ if __name__ == '__main__':
 
   print '  Start training... '
   idx_start = 0
-  
-  for itr in xrange(20000):
+  epoch_counter = 0
+  max_test_acc = 0
+
+
+  #num_input_data =tr_data10.shape[0]
+  for itr in xrange(20000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
+ 
     if itr % 100 == 0:
-      print "iteration %d:  dropout: %f  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr, DROPOUT_PROB_1,
-                                                              #step_size,
+      print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
                                                                                                           keep_prob_2: DROPOUT_PROB_2}),
+                                                              DROPOUT_PROB_1,
+                                                              DROPOUT_PROB_2,
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
                                                                                                           keep_prob_2: DROPOUT_PROB_2}),
@@ -360,16 +311,27 @@ if __name__ == '__main__':
                                                                                                      keep_prob_1: DROPOUT_PROB_1, 
                                                                                                      keep_prob_2: DROPOUT_PROB_2}))
 
-    if itr % 10000 == 0 and itr != 0:
-      #saver = tf.train.import_meta_graph('./checkpoint/model_490000.ckpt.meta')
-      #model_name = "./checkpoint/model_%d.ckpt" % itr
-      #save_path = saver.save(sess, model_name)
-      #print("Model saved in file: %s" % save_path)
-      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-      test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: DROPOUT_PROB_1, 
-                                                                                      keep_prob_2: DROPOUT_PROB_2}))
+
+    if itr % epoch_num == 0:
+      print "Epoch %d" % epoch_counter
+      test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+
+      if test_acc > max_test_acc:
+        max_test_acc = test_acc
+
+      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
       test_result.write("\n")
+
+      epoch_counter += 1
+
+
+    if itr % 10000 == 0 and itr != 0:
+      model_name = "./checkpoint/model_%d.ckpt" % itr
+      save_path = saver.save(sess, model_name)
+      #save_path = saver.save(sess, "./checkpoint/model.ckpt")
+      print("Model saved in file: %s" % save_path)
+
 
     #print "batch: ", idx_start
     if idx_start+mini_batch >= len(tr_data10):
@@ -378,26 +340,23 @@ if __name__ == '__main__':
       idx_start += mini_batch
 
 
-    if itr % 10000 == 0 and itr != 0:
-      if itr % 20000 == 0:
-        DROPOUT_PROB_1 = 1.0
-        DROPOUT_PROB_2 = 1.0
-      else:
-        DROPOUT_PROB_1 = 0.8
-        DROPOUT_PROB_2 = 0.8
+    #if itr % 50000 == 0 and itr != 0:
+    #  DROPOUT_PROB_1 = 1.0
+    #  DROPOUT_PROB_2 = 0.5
 
 
+  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  #te_data10 = te_data10/255.0
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
-                                                                                         keep_prob_2: DROPOUT_PROB_2})
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0,
+                                                                                         keep_prob_2: 1.0})
   print "=                                                     ="
   print "======================================================="
   test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: DROPOUT_PROB_1, 
-                                                                                      keep_prob_2: DROPOUT_PROB_2}))
+                                                                                      keep_prob_1: 1.0, 
+                                                                                      keep_prob_2: 1.0}))
   test_result.write("\n")
-  test_result.close()
 
 
   #x, y = batchTestRead(tr_data10, tr_labels10)
