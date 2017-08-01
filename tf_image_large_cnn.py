@@ -116,7 +116,7 @@ def batchTestRead(input_data, input_label):
 
 
 if __name__ == '__main__':
-  print '===== Start loadin CIFAR10 ====='
+  print '===== Start loading CIFAR10 ====='
   datapath = '/home/hhwu/cifar-10-batches-py/'
 
   tr_data10, tr_labels10, te_data10, te_labels10, label_names10 = load_CIFAR10(datapath)
@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
   max_test_acc = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(1000000):
+  for itr in xrange(2000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
@@ -300,8 +300,8 @@ if __name__ == '__main__':
       if test_acc > max_test_acc:
         max_test_acc = test_acc
 
-      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
-      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
+      print "Test Accuracy: %.4f (max: %.4f)" % (test_acc, max_test_acc) 
+      test_result.write("Test Accuracy: %.4f (max: %.4f)" % (test_acc, max_test_acc))
       test_result.write("\n")
 
       epoch_counter += 1
