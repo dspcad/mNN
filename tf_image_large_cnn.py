@@ -165,7 +165,7 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 256
   NUM_NEURON_2 = 128
 
-  DROPOUT_PROB_1 = 0.80
+  DROPOUT_PROB_1 = 0.70
   DROPOUT_PROB_2 = 0.50
 
   LEARNING_RATE = 1e-3
@@ -238,7 +238,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             100000, 0.9, staircase=True)
+                                             100000, 0.95, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -263,8 +263,8 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  saver.restore(sess, "./checkpoint/model_990000.ckpt")
-  print("Model restored.")
+  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
+  #print("Model restored.")
 
   te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
