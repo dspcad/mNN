@@ -155,20 +155,20 @@ if __name__ == '__main__':
   epoch_num = num_training_imgs/mini_batch
 
   K = 10 # number of classes
-  NUM_FILTER_1 = 24
-  NUM_FILTER_2 = 24
-  NUM_FILTER_3 = 48 
-  NUM_FILTER_4 = 48 
-  NUM_FILTER_5 = 96 
-  NUM_FILTER_6 = 96 
+  NUM_FILTER_1 = 32
+  NUM_FILTER_2 = 32
+  NUM_FILTER_3 = 64 
+  NUM_FILTER_4 = 64 
+  NUM_FILTER_5 = 128
+  NUM_FILTER_6 = 128
 
-  NUM_NEURON_1 = 256
-  NUM_NEURON_2 = 128
+  NUM_NEURON_1 = 512 
+  NUM_NEURON_2 = 512 
 
-  DROPOUT_PROB_1 = 0.70
-  DROPOUT_PROB_2 = 0.50
+  DROPOUT_PROB_1 = 1.00
+  DROPOUT_PROB_2 = 1.00
 
-  LEARNING_RATE = 1e-3
+  LEARNING_RATE = 5e-4
  
   reg = 1e-3 # regularization strength
 
@@ -238,7 +238,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             100000, 0.95, staircase=True)
+                                             100000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -273,12 +273,12 @@ if __name__ == '__main__':
 
   max_test_acc = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(2000000):
+  for itr in xrange(1000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
  
-    if itr % 100 == 0:
+    if itr % 50 == 0:
       print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
@@ -300,8 +300,8 @@ if __name__ == '__main__':
       if test_acc > max_test_acc:
         max_test_acc = test_acc
 
-      print "Test Accuracy: %.4f (max: %.4f)" % (test_acc, max_test_acc) 
-      test_result.write("Test Accuracy: %.4f (max: %.4f)" % (test_acc, max_test_acc))
+      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
       test_result.write("\n")
 
       epoch_counter += 1
