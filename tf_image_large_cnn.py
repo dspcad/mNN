@@ -165,8 +165,8 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 256
   NUM_NEURON_2 = 128
 
-  DROPOUT_PROB_1 = 0.80
-  DROPOUT_PROB_2 = 0.50
+  DROPOUT_PROB_1 = 1.00
+  DROPOUT_PROB_2 = 1.00
 
   LEARNING_RATE = 1e-3
  
@@ -216,11 +216,11 @@ if __name__ == '__main__':
   Y2_drop = tf.nn.dropout(Y2, keep_prob_1)
 
   Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
   Y4_drop = tf.nn.dropout(Y4, keep_prob_1)
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
   Y6_drop = tf.nn.dropout(Y6, keep_prob_2)
 
 
@@ -263,10 +263,10 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  saver.restore(sess, "./checkpoint/model_990000.ckpt")
-  print("Model restored.")
+  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
+  #print("Model restored.")
 
-  te_x, te_y = batchTestRead(te_data10, te_labels10)
+  #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
   epoch_counter = 0
@@ -295,14 +295,14 @@ if __name__ == '__main__':
 
     if itr % epoch_num == 0:
       print "Epoch %d" % epoch_counter
-      test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+      #test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
 
-      if test_acc > max_test_acc:
-        max_test_acc = test_acc
+      #if test_acc > max_test_acc:
+      #  max_test_acc = test_acc
 
-      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
-      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
-      test_result.write("\n")
+      #print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+      #test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
+      #test_result.write("\n")
 
       epoch_counter += 1
 
