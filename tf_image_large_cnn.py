@@ -165,8 +165,8 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 512 
   NUM_NEURON_2 = 512 
 
-  DROPOUT_PROB_1 = 1.00
-  DROPOUT_PROB_2 = 1.00
+  DROPOUT_PROB_1 = 0.80
+  DROPOUT_PROB_2 = 0.50
 
   LEARNING_RATE = 5e-4
  
@@ -216,12 +216,12 @@ if __name__ == '__main__':
   Y2_drop = tf.nn.dropout(Y2, keep_prob_1)
 
   Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
   Y4_drop = tf.nn.dropout(Y4, keep_prob_1)
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y6_drop = tf.nn.dropout(Y6, keep_prob_2)
+  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y6_drop = tf.nn.dropout(Y6, keep_prob_1)
 
 
   YY = tf.reshape(Y6_drop, shape=[-1,4*4*NUM_FILTER_6])
@@ -238,7 +238,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             100000, 0.9, staircase=True)
+                                             100000, 0.95, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
