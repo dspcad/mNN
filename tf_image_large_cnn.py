@@ -6,6 +6,7 @@ import os
 import tensorflow as tf
 #import matplotlib.pyplot as plt
 from skimage import transform
+from skimage import exposure
 
 
 def unpickle(file):
@@ -65,13 +66,13 @@ def batchRead(input_data, input_label,start):
     # Flip the image with 0.5  
     if np.random.uniform(0,1) <= 0.5:
       img = np.fliplr(img)
-    elif np.random.uniform(0,1) <= 0.5:
-      img = transform.rotate(img, 45)
-    elif np.random.uniform(0,1) <= 0.75:
-      img = transform.rotate(img, 315)
-      #img = exposure.equalize_hist(img)
+
+      if np.random.uniform(0,1) <= 0.5:
+        img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
+
     else:
-      img = img
+      if np.random.uniform(0,1) <= 0.5:
+        img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
 
 
     if i == 0:
