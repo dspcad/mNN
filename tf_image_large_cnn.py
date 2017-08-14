@@ -42,7 +42,7 @@ def load_CIFAR10(folder):
 
 
 
-def batchRead(input_data, input_label,start):
+def batchRead(input_data, input_label,start, center_img, std_img):
   batch_idx = np.random.randint(0,len(input_data),mini_batch)
   #batch_idx = xrange(start, start+mini_batch)
 
@@ -64,15 +64,18 @@ def batchRead(input_data, input_label,start):
     #    Data Augmentation     #
     ############################
     # Flip the image with 0.5  
-    if np.random.uniform(0,1) <= 0.5:
+    sel = np.random.uniform(0,1)
+    if sel <= 0.25:
       img = np.fliplr(img)
-
-      if np.random.uniform(0,1) <= 0.5:
-        img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
-
+    elif sel <= 0.5:
+      img = img
+    elif sel <= 0.75:
+      img = exposure.adjust_gamma(img, gamma=1.4, gain=1)
     else:
-      if np.random.uniform(0,1) <= 0.5:
-        img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
+      img = np.fliplr(img)
+      img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
+
+
 
 
     if i == 0:
@@ -82,6 +85,12 @@ def batchRead(input_data, input_label,start):
       img_batch = np.vstack((img_batch, img))
       label_batch = np.hstack((label_batch, input_label[batch_idx[i]]))
   
+  img_batch = img_batch.reshape(mini_batch,3072)
+
+
+  img_batch = np.subtract(img_batch, center_img, casting='unsafe')
+  img_batch /= std_img
+
   img_batch = img_batch.reshape(mini_batch,32,32,3)
 
   #convert to one hot labels
@@ -147,8 +156,8 @@ if __name__ == '__main__':
   print std_img
   print std_img.shape
  
-  tr_data10 = np.subtract(tr_data10, center_img, casting='unsafe')
-  tr_data10 /= std_img
+  #tr_data10 = np.subtract(tr_data10, center_img, casting='unsafe')
+  #tr_data10 /= std_img
 
   te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
   te_data10 /= std_img
@@ -228,11 +237,11 @@ if __name__ == '__main__':
   Y2_drop = tf.nn.dropout(Y2, keep_prob_1)
 
   Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
   Y4_drop = tf.nn.dropout(Y4, keep_prob_1)
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
   Y6_drop = tf.nn.dropout(Y6, keep_prob_1)
 
 
@@ -250,7 +259,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             100000, 1, staircase=True)
+                                             1000000, 0.2, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -285,8 +294,8 @@ if __name__ == '__main__':
 
   max_test_acc = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(2000000):
-    x, y = batchRead(tr_data10, tr_labels10, idx_start)
+  for itr in xrange(3000000):
+    x, y = batchRead(tr_data10, tr_labels10, idx_start, center_img, std_img)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
  
