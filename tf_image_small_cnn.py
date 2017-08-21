@@ -145,10 +145,10 @@ if __name__ == '__main__':
   mini_batch = 100
   K = 10 # number of classes
   NUM_FILTER_1 = 8
-  NUM_FILTER_2 = 24
+  NUM_FILTER_2 = 32
 
-  NUM_NEURON_1 = 80
-  NUM_NEURON_2 = 40
+  NUM_NEURON_1 = 64
+  NUM_NEURON_2 = 64
 
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
@@ -198,7 +198,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                            50000, 0.9, staircase=True)
+                                            5000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
   #print("Model restored.")
 
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
-  print '  Start training... '
+  #print '  Start training... '
   idx_start = 0
   #num_input_data =tr_data10.shape[0]
   for itr in xrange(10000):
@@ -263,17 +263,17 @@ if __name__ == '__main__':
     else:
       idx_start += mini_batch
 
-  model_name = "./checkpoint/model_small_1.ckpt"
+  model_name = "./checkpoint/model_small_4.ckpt"
   save_path = saver.save(sess, model_name)
 
-  #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
-  #te_data10 = te_data10/std_img
-  #te_x, te_y = batchTestRead(te_data10, te_labels10)
-  #print "==================== Test Accuracy ===================="
-  #print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
-  #                                                                                       keep_prob_2: DROPOUT_PROB_2})
-  #print "=                                                     ="
-  #print "======================================================="
+  te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
+  te_data10 = te_data10/std_img
+  te_x, te_y = batchTestRead(te_data10, te_labels10)
+  print "==================== Test Accuracy ===================="
+  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1,
+                                                                                         keep_prob_2: DROPOUT_PROB_2})
+  print "=                                                     ="
+  print "======================================================="
   #test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
   #                                                                                    keep_prob_1: DROPOUT_PROB_1, 
   #                                                                                    keep_prob_2: DROPOUT_PROB_2}))

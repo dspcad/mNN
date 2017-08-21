@@ -143,14 +143,27 @@ def restoreParamsFromModels(sess):
   filter_m3_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
   print "small model 3 is restored."
 
+  saver = tf.train.import_meta_graph('./checkpoint/model_small_4.ckpt.meta')
+  saver.restore(sess, "./checkpoint/model_small_4.ckpt")
+  graph = tf.get_default_graph()
+  w1 = graph.get_tensor_by_name("w1:0")
+  w2 = graph.get_tensor_by_name("w2:0")
+
+  filter_m4_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  filter_m4_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+  print "small model 4 is restored."
+
+
   pre_trained_W1 = np.concatenate((filter_m1_W1,filter_m2_W1),axis=-1)
   pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m3_W1),axis=-1)
+  pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m4_W1),axis=-1)
   #print W1
   print pre_trained_W1.shape
 
 
   pre_trained_W2 = np.concatenate((filter_m1_W2,filter_m2_W2),axis=2)
   pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m3_W2),axis=2)
+  pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m4_W2),axis=2)
   #print W2
   print pre_trained_W2.shape
 
@@ -204,23 +217,27 @@ if __name__ == '__main__':
   #  Configuration of CNN architecture    #
   #########################################
   mini_batch = 100
-  K = 10 # number of classes
-  NUM_FILTER_1 = 24
-  NUM_FILTER_2 = 24
-  NUM_FILTER_3 = 48 
-  NUM_FILTER_4 = 48 
-  NUM_FILTER_5 = 96 
-  NUM_FILTER_6 = 96 
+  num_training_imgs = tr_data10.shape[0]
+  DATA_AUGMENTATION = 1
+  epoch_num = DATA_AUGMENTATION*num_training_imgs/mini_batch
 
-  NUM_NEURON_1 = 256
-  NUM_NEURON_2 = 128
+  K = 10 # number of classes
+  NUM_FILTER_1 = 32
+  NUM_FILTER_2 = 32
+  NUM_FILTER_3 = 64 
+  NUM_FILTER_4 = 64 
+  NUM_FILTER_5 = 128
+  NUM_FILTER_6 = 128
+
+  NUM_NEURON_1 = 512
+  NUM_NEURON_2 = 512
 
   DROPOUT_PROB_1 = 1.0
   DROPOUT_PROB_2 = 1.0
 
-  LEARNING_RATE = 1e-3
+  LEARNING_RATE = 2e-4
  
-  reg = 5e-4 # regularization strength
+  reg = 1e-3 # regularization strength
 
 
   # Dropout probability
@@ -277,20 +294,20 @@ if __name__ == '__main__':
 
 
   YY = tf.reshape(Y6_drop, shape=[-1,4*4*NUM_FILTER_6])
-  YY_drop = tf.nn.dropout(YY, keep_prob_2)
 
 
-  Y7 = tf.nn.relu(tf.matmul(YY_drop,W7)+b7)
+  Y7 = tf.nn.relu(tf.matmul(YY,W7)+b7)
   Y7_drop = tf.nn.dropout(Y7, keep_prob_2)
 
-  Y8 = tf.matmul(Y7_drop,W8)+b8
+  Y8 = tf.nn.relu(tf.matmul(Y7_drop,W8)+b8)
+  Y8_drop = tf.nn.dropout(Y8, keep_prob_2)
 
-  Y  = tf.nn.softmax(tf.matmul(Y8,W9)+b9)
+  Y  = tf.nn.softmax(tf.matmul(Y8_drop,W9)+b9)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                            50000, 0.9, staircase=True)
+                                            100000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -342,13 +359,15 @@ if __name__ == '__main__':
 
   print '  Start training... '
   idx_start = 0
-  
-  for itr in xrange(20000):
+  epoch_counter = 0
+  max_test_acc = 0
+
+  for itr in xrange(500000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
     if itr % 100 == 0:
-      print "iteration %d:  dropout: %f  learning rate: %f  cross entropy: %f  accuracy: %f" % (itr, DROPOUT_PROB_1,
+      print "iteration %d:  dropout: %.2f  learning rate: %f  cross entropy: %f  accuracy: %.4f" % (itr, DROPOUT_PROB_1,
                                                               #step_size,
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                           keep_prob_1: DROPOUT_PROB_1, 
@@ -359,32 +378,34 @@ if __name__ == '__main__':
                                                               accuracy.eval(session=sess, feed_dict={X: x, Y_: y, 
                                                                                                      keep_prob_1: DROPOUT_PROB_1, 
                                                                                                      keep_prob_2: DROPOUT_PROB_2}))
+    if itr % epoch_num == 0:
+      print "Epoch %d" % epoch_counter
+      test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
 
-    if itr % 10000 == 0 and itr != 0:
-      #saver = tf.train.import_meta_graph('./checkpoint/model_490000.ckpt.meta')
-      #model_name = "./checkpoint/model_%d.ckpt" % itr
-      #save_path = saver.save(sess, model_name)
-      #print("Model saved in file: %s" % save_path)
-      print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-      test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: DROPOUT_PROB_1, 
-                                                                                      keep_prob_2: DROPOUT_PROB_2}))
+      if test_acc > max_test_acc:
+        max_test_acc = test_acc
+
+      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
       test_result.write("\n")
 
-    #print "batch: ", idx_start
+      epoch_counter += 1
+
+
+
     if idx_start+mini_batch >= len(tr_data10):
       idx_start = 0
     else:
       idx_start += mini_batch
 
 
-    if itr % 10000 == 0 and itr != 0:
-      if itr % 20000 == 0:
-        DROPOUT_PROB_1 = 1.0
-        DROPOUT_PROB_2 = 1.0
-      else:
-        DROPOUT_PROB_1 = 0.8
-        DROPOUT_PROB_2 = 0.8
+    #if itr % 10000 == 0 and itr != 0:
+    #  if itr % 20000 == 0:
+    #    DROPOUT_PROB_1 = 1.0
+    #    DROPOUT_PROB_2 = 1.0
+    #  else:
+    #    DROPOUT_PROB_1 = 0.8
+    #    DROPOUT_PROB_2 = 0.8
 
 
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
