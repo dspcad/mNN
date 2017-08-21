@@ -65,15 +65,36 @@ def batchRead(input_data, input_label,start, center_img, std_img):
     ############################
     # Flip the image with 0.5  
     sel = np.random.uniform(0,1)
-    if sel <= 0.25:
+    brightness_sel = np.random.uniform(0,1) 
+    if sel <= 0.5:
       img = np.fliplr(img)
-    elif sel <= 0.5:
-      img = img
-    elif sel <= 0.75:
-      img = exposure.adjust_gamma(img, gamma=1.4, gain=1)
+
+      if brightness_sel <= 0.25:
+        img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
+      elif brightness_sel <= 0.5:
+        img = exposure.adjust_gamma(img, gamma=0.8, gain=1)
+      elif brightness_sel <= 0.75:
+        img = img
+      else:
+        img = exposure.adjust_gamma(img, gamma=1.2, gain=1)
     else:
-      img = np.fliplr(img)
-      img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
+      if brightness_sel <= 0.25:
+        img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
+      elif brightness_sel <= 0.5:
+        img = exposure.adjust_gamma(img, gamma=0.8, gain=1)
+      elif brightness_sel <= 0.75:
+        img = img
+      else:
+        img = exposure.adjust_gamma(img, gamma=1.2, gain=1)
+
+
+    #elif sel <= 0.5:
+    #  img = img
+    #elif sel <= 0.75:
+    #  img = exposure.adjust_gamma(img, gamma=1.4, gain=1)
+    #else:
+    #  img = np.fliplr(img)
+    #  img = exposure.adjust_gamma(img, gamma=0.6, gain=1)
 
 
 
@@ -172,7 +193,7 @@ if __name__ == '__main__':
   #########################################
   mini_batch = 100
   num_training_imgs = tr_data10.shape[0]
-  DATA_AUGMENTATION = 4
+  DATA_AUGMENTATION = 8
   epoch_num = DATA_AUGMENTATION*num_training_imgs/mini_batch
 
   K = 10 # number of classes
@@ -259,7 +280,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             1000000, 0.2, staircase=True)
+                                             1000000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -284,8 +305,8 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  #saver.restore(sess, "./checkpoint/model_990000.ckpt")
-  #print("Model restored.")
+  saver.restore(sess, "./checkpoint/model_2990000.ckpt")
+  print("Model restored.")
 
   te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '

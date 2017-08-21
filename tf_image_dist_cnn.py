@@ -239,6 +239,7 @@ if __name__ == '__main__':
  
   reg = 1e-3 # regularization strength
 
+  STDDEV = 5e-2
 
   # Dropout probability
   keep_prob_1 = tf.placeholder(tf.float32)
@@ -256,27 +257,27 @@ if __name__ == '__main__':
   W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
-  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.1))
+  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=STDDEV))
   b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
 
-  W4 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.1))
+  W4 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=STDDEV))
   b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
 
-  W5 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.1))
+  W5 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=STDDEV))
   b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
 
-  W6 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_5,NUM_FILTER_6], stddev=0.1))
+  W6 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_5,NUM_FILTER_6], stddev=STDDEV))
   b6 = tf.Variable(tf.ones([NUM_FILTER_6])/10)
 
 
 
-  W7 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_6,NUM_NEURON_1], stddev=0.1))
+  W7 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_6,NUM_NEURON_1], stddev=STDDEV))
   b7 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
 
-  W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.1))
+  W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=STDDEV))
   b8 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
 
-  W9 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
+  W9 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=STDDEV))
   b9 = tf.Variable(tf.ones([K])/10)
 
   #===== architecture =====#
@@ -307,7 +308,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                            100000, 0.9, staircase=True)
+                                            50000, 0.95, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)

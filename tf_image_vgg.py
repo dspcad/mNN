@@ -155,22 +155,22 @@ if __name__ == '__main__':
   epoch_num = num_training_imgs/mini_batch
 
   K = 10 # number of classes
-  NUM_FILTER_1 = 64
-  NUM_FILTER_2 = 64
-  NUM_FILTER_3 = 128
-  NUM_FILTER_4 = 128
-  NUM_FILTER_5 = 256
-  NUM_FILTER_6 = 256
+  NUM_FILTER_1 = 32
+  NUM_FILTER_2 = 32
+  NUM_FILTER_3 = 64 
+  NUM_FILTER_4 = 64 
+  NUM_FILTER_5 = 128
+  NUM_FILTER_6 = 128
   NUM_FILTER_7 = 256
   NUM_FILTER_8 = 256
 
-  NUM_NEURON_1 = 1024
-  NUM_NEURON_2 = 1024
+  NUM_NEURON_1 = 512
+  #NUM_NEURON_2 = 1024
 
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
 
-  LEARNING_RATE = 1e-5
+  LEARNING_RATE = 1e-4
  
   reg = 1e-4 # regularization strength
 
@@ -212,14 +212,12 @@ if __name__ == '__main__':
   W9 = tf.Variable(tf.truncated_normal([2*2*NUM_FILTER_8,NUM_NEURON_1], stddev=0.1))
   b9 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
 
-  W10 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.1))
-  b10 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
+  #W10 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.1))
+  #b10 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
 
-  W11 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
-  b11 = tf.Variable(tf.ones([K])/10)
+  W10 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,K], stddev=0.1))
+  b10 = tf.Variable(tf.ones([K])/10)
 
-  #W9 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.1))
-  #b9 = tf.Variable(tf.ones([K])/10)
 
   #===== architecture =====#
   Y1 = tf.nn.relu(tf.nn.conv2d(X, W1, strides=[1,1,1,1], padding='SAME')+b1)
@@ -245,15 +243,15 @@ if __name__ == '__main__':
   Y9 = tf.nn.relu(tf.matmul(YY,W9)+b9)
   Y9_drop = tf.nn.dropout(Y9, keep_prob_2)
 
-  Y10 = tf.nn.relu(tf.matmul(Y9_drop,W10)+b10)
-  Y10_drop = tf.nn.dropout(Y10, keep_prob_2)
+  #Y10 = tf.nn.relu(tf.matmul(Y9_drop,W10)+b10)
+  #Y10_drop = tf.nn.dropout(Y10, keep_prob_2)
 
-  Y  = tf.nn.softmax(tf.matmul(Y10_drop,W11)+b11)
+  Y  = tf.nn.softmax(tf.matmul(Y9_drop,W10)+b10)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             50000, 0.9, staircase=True)
+                                             100000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -281,7 +279,7 @@ if __name__ == '__main__':
   #saver.restore(sess, "./checkpoint/model_990000.ckpt")
   #print("Model restored.")
 
-  #te_x, te_y = batchTestRead(te_data10, te_labels10)
+  te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
   epoch_counter = 0
@@ -310,14 +308,14 @@ if __name__ == '__main__':
 
     if itr % epoch_num == 0:
       print "Epoch %d" % epoch_counter
-      #test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+      test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
 
-      #if test_acc > max_test_acc:
-      #  max_test_acc = test_acc
+      if test_acc > max_test_acc:
+        max_test_acc = test_acc
 
-      #print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
-      #test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
-      #test_result.write("\n")
+      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
+      test_result.write("\n")
 
       epoch_counter += 1
 
