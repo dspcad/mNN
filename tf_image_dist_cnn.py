@@ -232,10 +232,10 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 512
   NUM_NEURON_2 = 512
 
-  DROPOUT_PROB_1 = 1.0
-  DROPOUT_PROB_2 = 1.0
+  DROPOUT_PROB_1 = 0.8
+  DROPOUT_PROB_2 = 0.5
 
-  LEARNING_RATE = 2e-4
+  LEARNING_RATE = 5e-4
  
   reg = 1e-3 # regularization strength
 
@@ -283,14 +283,14 @@ if __name__ == '__main__':
   #===== architecture =====#
   Y1 = tf.nn.relu(tf.nn.conv2d(X, W1, strides=[1,1,1,1], padding='SAME')+b1)
   Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y2_drop = tf.nn.dropout(Y2, keep_prob_1)
+  Y2_drop = tf.nn.dropout(Y2, 1.0)
 
   Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
   Y4_drop = tf.nn.dropout(Y4, keep_prob_1)
 
   Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  Y6 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
   Y6_drop = tf.nn.dropout(Y6, keep_prob_1)
 
 
@@ -308,7 +308,7 @@ if __name__ == '__main__':
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                            50000, 0.95, staircase=True)
+                                            1000000, 0.9, staircase=True)
 
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -363,22 +363,26 @@ if __name__ == '__main__':
   epoch_counter = 0
   max_test_acc = 0
 
-  for itr in xrange(500000):
+  for itr in xrange(1000000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
     if itr % 100 == 0:
-      print "iteration %d:  dropout: %.2f  learning rate: %f  cross entropy: %f  accuracy: %.4f" % (itr, DROPOUT_PROB_1,
-                                                              #step_size,
-                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
-                                                                                                          keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                          keep_prob_2: DROPOUT_PROB_2}),
-                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, 
-                                                                                                          keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                          keep_prob_2: DROPOUT_PROB_2}),
-                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y, 
-                                                                                                     keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                     keep_prob_2: DROPOUT_PROB_2}))
+      print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
+                                                              learning_rate.eval(session=sess, feed_dict={X: x, Y_: y,
+                                                                                                          keep_prob_1: 1.0,
+                                                                                                          keep_prob_2: 1.0}),
+                                                              DROPOUT_PROB_1,
+                                                              DROPOUT_PROB_2,
+                                                              cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y,
+                                                                                                          keep_prob_1: 1.0,
+                                                                                                          keep_prob_2: 1.0}),
+                                                              accuracy.eval(session=sess, feed_dict={X: x, Y_: y,
+                                                                                                     keep_prob_1: 1.0,
+                                                                                                     keep_prob_2: 1.0}))
+
+
+
     if itr % epoch_num == 0:
       print "Epoch %d" % epoch_counter
       test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
