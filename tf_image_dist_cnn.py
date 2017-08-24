@@ -106,17 +106,17 @@ def batchTestRead(input_data, input_label):
   return img_batch, test_y
 
 
-def restoreParamsFromModels(sess):
+def restoreParamsFromModels():
   x = np.zeros((1,32,32,3))
   y = np.zeros((1,10))
 
+  sess = tf.Session()
   saver = tf.train.import_meta_graph('./checkpoint/model_small_1.ckpt.meta')
   saver.restore(sess, "./checkpoint/model_small_1.ckpt")
   graph = tf.get_default_graph()
   w1 = graph.get_tensor_by_name("w1:0")
   w2 = graph.get_tensor_by_name("w2:0")
   print "small model 1 is restored."
-  #print W1.get_shape().as_list()
 
   filter_m1_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
   filter_m1_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
@@ -173,7 +173,7 @@ def restoreParamsFromModels(sess):
   #W1.assign(pre_trained_W1)
   #W2.assign(pre_trained_W2)
 
-  sess.run(tf.global_variables_initializer())
+  #sess.run(tf.global_variables_initializer())
   return W1, W2
 
 
@@ -232,8 +232,8 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 512
   NUM_NEURON_2 = 512
 
-  DROPOUT_PROB_1 = 0.8
-  DROPOUT_PROB_2 = 0.5
+  DROPOUT_PROB_1 = 1.0
+  DROPOUT_PROB_2 = 1.0
 
   LEARNING_RATE = 5e-4
  
@@ -249,12 +249,15 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
+  W1, W2 = restoreParamsFromModels()
+
+
   #W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
-  W1 = tf.Variable(tf.zeros([3,3,3,NUM_FILTER_1]))
+  #W1 = tf.Variable(tf.zeros([3,3,3,NUM_FILTER_1]))
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
 
   #W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
-  W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
+  #W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
   W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=STDDEV))
@@ -281,6 +284,7 @@ if __name__ == '__main__':
   b9 = tf.Variable(tf.ones([K])/10)
 
   #===== architecture =====#
+  #W1_stop = tf.stop_gradient(W1)  
   Y1 = tf.nn.relu(tf.nn.conv2d(X, W1, strides=[1,1,1,1], padding='SAME')+b1)
   Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
   Y2_drop = tf.nn.dropout(Y2, 1.0)
@@ -328,6 +332,7 @@ if __name__ == '__main__':
   #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
   sess = tf.Session()
+  sess.run(tf.global_variables_initializer())
   #saver = tf.train.Saver() 
  
   #####################################################
@@ -338,10 +343,12 @@ if __name__ == '__main__':
 
 
 
-  #####################################################
-  #      Restore the paramters of some filters        #
-  #####################################################
-  W1, W2 = restoreParamsFromModels(sess)
+#  #####################################################
+#  #      Restore the paramters of some filters        #
+#  #####################################################
+#  #W1, W2 = restoreParamsFromModels(sess, W1, W2)
+#  restoreParamsFromModels(sess, W1, W2)
+
 
 
 
@@ -363,9 +370,11 @@ if __name__ == '__main__':
   epoch_counter = 0
   max_test_acc = 0
 
-  for itr in xrange(1000000):
+  for itr in xrange(100000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
+    #print W1.eval(session=sess, feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+    #print W1.eval(session=sess)
  
     if itr % 100 == 0:
       print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
