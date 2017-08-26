@@ -226,7 +226,6 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
-<<<<<<< HEAD
 
   #####################################################
   #      Restore the paramters of some filters        #
@@ -234,17 +233,6 @@ if __name__ == '__main__':
   W1, W2 = restoreParamsFromModels(num_model)
 
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
-=======
-  W1, W2 = restoreParamsFromModels()
-
-
-  #W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
-  #W1 = tf.Variable(tf.zeros([3,3,3,NUM_FILTER_1]))
-  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
-
-  #W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
-  #W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
->>>>>>> 51d3318f0dbf29a44c4af08ba5b2f194b179ed37
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
 
