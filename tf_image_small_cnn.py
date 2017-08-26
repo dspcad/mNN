@@ -3,6 +3,7 @@
 import cPickle
 import numpy as np
 import os
+import sys
 import tensorflow as tf
 #import matplotlib.pyplot as plt
 
@@ -108,6 +109,12 @@ def batchTestRead(input_data, input_label):
 
 
 if __name__ == '__main__':
+  print '=========    Model Setting    ========='
+  print "=  Model size: %s" % sys.argv[1]
+  model_name = "./checkpoint/model_small_%s.ckpt" % sys.argv[2]
+  print "=  Model name: %s " % model_name
+  print '======================================='
+
   print '===== Start loadin CIFAR10 ====='
   datapath = '/home/hhwu/cifar-10-batches-py/'
 
@@ -144,14 +151,16 @@ if __name__ == '__main__':
   #########################################
   mini_batch = 100
   K = 10 # number of classes
-  NUM_FILTER_1 = 8
+  NUM_FILTER_1 = int(sys.argv[1])
   NUM_FILTER_2 = 32
-  NUM_FILTER_3 = 16
-  NUM_FILTER_4 = 16
-  NUM_FILTER_5 = 128
-  NUM_FILTER_6 = 128
-
-
+#  NUM_FILTER_3 = 64
+#  NUM_FILTER_4 = 64
+#  NUM_FILTER_5 = 128
+#  NUM_FILTER_6 = 128
+#
+#  NUM_NEURON_1 = 512
+#  NUM_NEURON_2 = 512
+#
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
 
@@ -175,41 +184,49 @@ if __name__ == '__main__':
   W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=STDDEV), name='w2')
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10, name='b2')
 
-  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=STDDEV))
-  b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
-
-  W4 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=STDDEV))
-  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
-
-  W5 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=STDDEV))
-  b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
-
-  W6 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_5,NUM_FILTER_6], stddev=STDDEV))
-  b6 = tf.Variable(tf.ones([NUM_FILTER_6])/10)
-
-
-  W7 = tf.Variable(tf.truncated_normal([4*4*NUM_FILTER_6,K], stddev=STDDEV))
+#  W3 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=STDDEV))
+#  b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
+#
+#  W4 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=STDDEV))
+#  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
+#
+#  W5 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=STDDEV))
+#  b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
+#
+#  W6 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_5,NUM_FILTER_6], stddev=STDDEV))
+#  b6 = tf.Variable(tf.ones([NUM_FILTER_6])/10)
+#
+#
+  W7 = tf.Variable(tf.truncated_normal([16*16*NUM_FILTER_2,K], stddev=STDDEV))
   b7 = tf.Variable(tf.ones([K])/10)
+#
+#  W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=STDDEV))
+#  b8 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
 
-
+#  W9 = tf.Variable(tf.truncated_normal([NUM_FILTER_2,K], stddev=STDDEV))
+#  b9 = tf.Variable(tf.ones([K])/10)
 
   #===== architecture =====#
   Y1 = tf.nn.relu(tf.nn.conv2d(X, W1, strides=[1,1,1,1], padding='SAME')+b1)
   Y2 = tf.nn.max_pool(tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1,1,1,1], padding='SAME')+b2), ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
-  Y2_drop = tf.nn.dropout(Y2, keep_prob_1)
 
-  Y3 = tf.nn.relu(tf.nn.conv2d(Y2_drop, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
-  Y4_drop = tf.nn.dropout(Y4, keep_prob_1)
-
-  Y5 = tf.nn.relu(tf.nn.conv2d(Y4_drop, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
-  Y6_drop = tf.nn.dropout(Y6, keep_prob_1)
+#  Y3 = tf.nn.relu(tf.nn.conv2d(Y2, W3, strides=[1,1,1,1], padding='SAME')+b3)
+#  Y4 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y3, W4, strides=[1,1,1,1], padding='SAME')+b4), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
+#
+#  Y5 = tf.nn.relu(tf.nn.conv2d(Y4, W5, strides=[1,1,1,1], padding='SAME')+b5)
+#  Y6 = tf.nn.avg_pool(tf.nn.relu(tf.nn.conv2d(Y5, W6, strides=[1,1,1,1], padding='SAME')+b6), ksize=[1,3,3,1], strides=[1,2,2,1], padding='SAME')
 
 
-  YY = tf.reshape(Y6_drop, shape=[-1,4*4*NUM_FILTER_6])
+  YY = tf.reshape(Y2, shape=[-1,16*16*NUM_FILTER_2])
+
+#  Y7 = tf.nn.relu(tf.matmul(YY,W7)+b7)
+#  Y8 = tf.nn.relu(tf.matmul(Y7,W8)+b8)
+
 
   Y  = tf.nn.softmax(tf.matmul(YY,W7)+b7)
+
+
+  #Y  = tf.nn.softmax(tf.matmul(YY,W7)+b7)
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
@@ -279,8 +296,13 @@ if __name__ == '__main__':
     else:
       idx_start += mini_batch
 
-  model_name = "./checkpoint/model_small_4.ckpt"
+
+  #####################################################
+  #                  Save the model                   #
+  #####################################################
   save_path = saver.save(sess, model_name)
+
+
 
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
   #te_data10 = te_data10/std_img
@@ -290,6 +312,7 @@ if __name__ == '__main__':
   #                                                                                       keep_prob_2: DROPOUT_PROB_2})
   #print "=                                                     ="
   #print "======================================================="
+
   #test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
   #                                                                                    keep_prob_1: DROPOUT_PROB_1, 
   #                                                                                    keep_prob_2: DROPOUT_PROB_2}))
