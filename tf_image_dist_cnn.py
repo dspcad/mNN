@@ -121,7 +121,6 @@ def restoreParamsFromModels(num_model):
 
     saver = tf.train.import_meta_graph(model_name_meta)
     saver.restore(sess, model_name)
-
     graph = tf.get_default_graph()
     w1 = graph.get_tensor_by_name("w1:0")
     w2 = graph.get_tensor_by_name("w2:0")
@@ -139,52 +138,10 @@ def restoreParamsFromModels(num_model):
  
     print pre_trained_W1.shape
     print pre_trained_W2.shape
-  #saver = tf.train.import_meta_graph('./checkpoint/model_small_2.ckpt.meta')
-  #saver.restore(sess, "./checkpoint/model_small_2.ckpt")
-  #graph = tf.get_default_graph()
-  #w1 = graph.get_tensor_by_name("w1:0")
-  #w2 = graph.get_tensor_by_name("w2:0")
 
-  #filter_m2_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  #filter_m2_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  #print "small model 2 is restored."
-
-
-  #saver = tf.train.import_meta_graph('./checkpoint/model_small_3.ckpt.meta')
-  #saver.restore(sess, "./checkpoint/model_small_3.ckpt")
-  #graph = tf.get_default_graph()
-  #w1 = graph.get_tensor_by_name("w1:0")
-  #w2 = graph.get_tensor_by_name("w2:0")
-
-  #filter_m3_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  #filter_m3_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  #print "small model 3 is restored."
-
-  #saver = tf.train.import_meta_graph('./checkpoint/model_small_4.ckpt.meta')
-  #saver.restore(sess, "./checkpoint/model_small_4.ckpt")
-  #graph = tf.get_default_graph()
-  #w1 = graph.get_tensor_by_name("w1:0")
-  #w2 = graph.get_tensor_by_name("w2:0")
-
-  #filter_m4_W1 = sess.run(w1,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  #filter_m4_W2 = sess.run(w2,feed_dict={X: x, Y_: y, keep_prob_1: 1.0, keep_prob_2: 1.0})
-  #print "small model 4 is restored."
-
-
-  #pre_trained_W1 = np.concatenate((filter_m1_W1,filter_m2_W1),axis=-1)
-  #pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m3_W1),axis=-1)
-  #pre_trained_W1 = np.concatenate((pre_trained_W1,filter_m4_W1),axis=-1)
-  ##print W1
-
-
-  #pre_trained_W2 = np.concatenate((filter_m1_W2,filter_m2_W2),axis=2)
-  #pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m3_W2),axis=2)
-  #pre_trained_W2 = np.concatenate((pre_trained_W2,filter_m4_W2),axis=2)
-  ##print W2
 
   W1 = tf.Variable(pre_trained_W1)
   W2 = tf.Variable(pre_trained_W2)
-
 
   return W1, W2
 
@@ -269,6 +226,7 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 32,32,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
+<<<<<<< HEAD
 
   #####################################################
   #      Restore the paramters of some filters        #
@@ -276,6 +234,17 @@ if __name__ == '__main__':
   W1, W2 = restoreParamsFromModels(num_model)
 
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
+=======
+  W1, W2 = restoreParamsFromModels()
+
+
+  #W1 = tf.Variable(tf.truncated_normal([3,3,3,NUM_FILTER_1], stddev=0.1))
+  #W1 = tf.Variable(tf.zeros([3,3,3,NUM_FILTER_1]))
+  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
+
+  #W2 = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_1,NUM_FILTER_2], stddev=0.1))
+  #W2 = tf.Variable(tf.zeros([3,3,NUM_FILTER_1,NUM_FILTER_2]))
+>>>>>>> 51d3318f0dbf29a44c4af08ba5b2f194b179ed37
   b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
 
 
