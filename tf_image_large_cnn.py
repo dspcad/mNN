@@ -315,7 +315,7 @@ if __name__ == '__main__':
 
   max_test_acc = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(5000):
+  for itr in xrange(10000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start, center_img, std_img)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
