@@ -207,7 +207,7 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 512 
   NUM_NEURON_2 = 512 
 
-  DROPOUT_PROB_1 = 0.80
+  DROPOUT_PROB_1 = 0.50
   DROPOUT_PROB_2 = 0.50
 
   LEARNING_RATE = 5e-4
@@ -275,7 +275,7 @@ if __name__ == '__main__':
   Y8 = tf.nn.relu(tf.matmul(Y7_drop,W8)+b8)
   Y8_drop = tf.nn.dropout(Y8, keep_prob_2)
 
-  Y  = tf.nn.softmax(tf.matmul(Y8_drop,W9)+b9)
+  Y  = tf.matmul(Y8_drop,W9)+b9
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
@@ -305,48 +305,49 @@ if __name__ == '__main__':
   sess.run(tf.global_variables_initializer())
 
   # Restore variables from disk.
-  saver.restore(sess, "./checkpoint/model_2990000.ckpt")
-  print("Model restored.")
+  #saver.restore(sess, "./checkpoint/model_2990000.ckpt")
+  #print("Model restored.")
 
-  te_x, te_y = batchTestRead(te_data10, te_labels10)
+  #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
   epoch_counter = 0
 
   max_test_acc = 0
   #num_input_data =tr_data10.shape[0]
-  for itr in xrange(3000000):
+  for itr in xrange(5000):
     x, y = batchRead(tr_data10, tr_labels10, idx_start, center_img, std_img)
     sess.run(train_step, feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
  
+    #print train_step
  
     if itr % 100 == 0:
       print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
                                                               learning_rate.eval(session=sess, feed_dict={X: x, Y_: y, 
-                                                                                                          keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                          keep_prob_2: DROPOUT_PROB_2}),
+                                                                                                          keep_prob_1: 1.0, 
+                                                                                                          keep_prob_2: 1.0}),
                                                               DROPOUT_PROB_1,
                                                               DROPOUT_PROB_2,
                                                               cross_entropy.eval(session=sess, feed_dict={X: x, Y_: y, 
-                                                                                                          keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                          keep_prob_2: DROPOUT_PROB_2}),
+                                                                                                          keep_prob_1: 1.0, 
+                                                                                                          keep_prob_2: 1.0}),
                                                               accuracy.eval(session=sess, feed_dict={X: x, Y_: y, 
-                                                                                                     keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                     keep_prob_2: DROPOUT_PROB_2}))
+                                                                                                     keep_prob_1: 1.0, 
+                                                                                                     keep_prob_2: 1.0}))
 
 
-    if itr % epoch_num == 0:
-      print "Epoch %d" % epoch_counter
-      test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
+    #if itr % epoch_num == 0:
+    #  print "Epoch %d" % epoch_counter
+    #  test_acc = accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0, keep_prob_2: 1.0})
 
-      if test_acc > max_test_acc:
-        max_test_acc = test_acc
+    #  if test_acc > max_test_acc:
+    #    max_test_acc = test_acc
 
-      print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
-      test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
-      test_result.write("\n")
+    #  print "Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc) 
+    #  test_result.write("Test Accuracy: %f (max: %f)" % (test_acc, max_test_acc))
+    #  test_result.write("\n")
 
-      epoch_counter += 1
+    #  epoch_counter += 1
 
 
     if itr % 10000 == 0 and itr != 0:
@@ -371,15 +372,15 @@ if __name__ == '__main__':
   #te_data10 = np.subtract(te_data10, center_img, casting='unsafe')
   #te_data10 = te_data10/255.0
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
-  print "==================== Test Accuracy ===================="
-  print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0,
-                                                                                         keep_prob_2: 1.0})
-  print "=                                                     ="
-  print "======================================================="
-  test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
-                                                                                      keep_prob_1: 1.0, 
-                                                                                      keep_prob_2: 1.0}))
-  test_result.write("\n")
+  #print "==================== Test Accuracy ===================="
+  #print "Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, keep_prob_1: 1.0,
+  #                                                                                       keep_prob_2: 1.0})
+  #print "=                                                     ="
+  #print "======================================================="
+  #test_result.write("Test Accuracy: %f" %  accuracy.eval(session=sess, feed_dict={X: te_x, Y_: te_y, 
+  #                                                                                    keep_prob_1: 1.0, 
+  #                                                                                    keep_prob_2: 1.0}))
+  #test_result.write("\n")
 
 
   #x, y = batchTestRead(tr_data10, tr_labels10)
